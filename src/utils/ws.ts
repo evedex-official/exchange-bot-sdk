@@ -1,6 +1,5 @@
 import * as evedexApi from "@eventhorizon/exchange-api";
 import { Centrifuge, PublicationContext, Subscription } from "centrifuge";
-import { SignalSkipAll, signal } from "./signal";
 
 export class CentrifugeSubscription implements evedexApi.utils.CentrifugeSubscription {
   constructor(
@@ -16,9 +15,9 @@ export class CentrifugeSubscription implements evedexApi.utils.CentrifugeSubscri
     channel.on("publication", (ctx) => this.onPublication(ctx));
   }
 
-  onPublication = signal<PublicationContext>();
+  onPublication = evedexApi.utils.signal<PublicationContext>();
 
-  onRecover = signal<null>();
+  onRecover = evedexApi.utils.signal<null>();
 
   subscribe() {
     this.channel.subscribe();
@@ -26,7 +25,7 @@ export class CentrifugeSubscription implements evedexApi.utils.CentrifugeSubscri
 
   unsubscribe() {
     this.channel.unsubscribe();
-    this.onPublication(SignalSkipAll);
+    this.onPublication(evedexApi.utils.SignalSkipAll);
   }
 }
 
@@ -41,11 +40,15 @@ export class CentrifugeClient implements evedexApi.utils.CentrifugeClient {
     centrifuge.on("disconnected", () => this.onDisconnected(null));
   }
 
-  onConnected = signal<null>();
+  onConnected = evedexApi.utils.signal<null>();
 
-  onDisconnected = signal<null>();
+  onDisconnected = evedexApi.utils.signal<null>();
 
-  onRecover = signal<CentrifugeSubscription>();
+  onRecover = evedexApi.utils.signal<CentrifugeSubscription>();
+
+  connect() {
+    return this.centrifuge.connect();
+  }
 
   assignChannel(name: string, options?: evedexApi.utils.AssignChannelOptions) {
     let channel = this.channels.get(name);

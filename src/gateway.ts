@@ -4,7 +4,6 @@ import { RestClient } from "./utils/rest";
 import { Wallet } from "./utils/wallet";
 import { CentrifugeClient, CentrifugeSubscription } from "./utils/ws";
 import { Centrifuge } from "centrifuge";
-import { signal } from "./utils/signal";
 import { CollateralCurrency } from "./utils/types";
 import Big from "big.js";
 
@@ -247,15 +246,15 @@ export class Balance {
 
   private orders = new Map<string, evedexApi.utils.Order>();
 
-  public readonly onRecover = signal<CentrifugeSubscription>();
+  public readonly onRecover = evedexApi.utils.signal<CentrifugeSubscription>();
 
-  public readonly onAccountUpdate = signal<evedexApi.utils.User>();
+  public readonly onAccountUpdate = evedexApi.utils.signal<evedexApi.utils.User>();
 
-  public readonly onFundingUpdate = signal<evedexApi.utils.Funding>();
+  public readonly onFundingUpdate = evedexApi.utils.signal<evedexApi.utils.Funding>();
 
-  public readonly onPositionUpdate = signal<evedexApi.utils.Position>();
+  public readonly onPositionUpdate = evedexApi.utils.signal<evedexApi.utils.Position>();
 
-  public readonly onOrderUpdate = signal<evedexApi.utils.Order>();
+  public readonly onOrderUpdate = evedexApi.utils.signal<evedexApi.utils.Order>();
 
   constructor(private readonly options: BalanceOptions) {
     this.centrifugeClient =

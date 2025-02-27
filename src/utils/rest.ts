@@ -1,5 +1,5 @@
 import * as evedexApi from "@eventhorizon/exchange-api";
-import axios, { isAxiosError } from "axios";
+import axios from "axios";
 
 export class UnauthorizedRequest extends Error {}
 
@@ -10,27 +10,31 @@ export class RefreshTokenExpiredError extends evedexApi.utils.RequestError {
 }
 
 export interface RestClientOptions {
-  session?: evedexApi.utils.JWT | evedexApi.utils.RefreshedJWT;
+  session?: evedexApi.utils.JWT | evedexApi.utils.RefreshedJWT | evedexApi.utils.ApiKey;
   authGateway?: evedexApi.AuthRestGateway;
 }
 
 export class RestClient implements evedexApi.utils.HttpClient {
-  private jwt?: evedexApi.utils.JWT | evedexApi.utils.RefreshedJWT;
+  private session?: evedexApi.utils.JWT | evedexApi.utils.RefreshedJWT | evedexApi.utils.ApiKey;
 
   constructor(private readonly options: RestClientOptions) {
-    this.jwt = options.session;
+    this.session = options.session;
   }
 
   setAuthGateway(authGateway: evedexApi.AuthRestGateway) {
     this.options.authGateway = authGateway;
   }
 
-  setSession(jwt: evedexApi.utils.JWT | evedexApi.utils.RefreshedJWT) {
-    this.jwt = jwt;
+  setSession(session: evedexApi.utils.JWT | evedexApi.utils.RefreshedJWT | evedexApi.utils.ApiKey) {
+    this.session = session;
   }
 
-  getSession(): evedexApi.utils.JWT | evedexApi.utils.RefreshedJWT | undefined {
-    return this.jwt;
+  getSession():
+    | evedexApi.utils.JWT
+    | evedexApi.utils.RefreshedJWT
+    | evedexApi.utils.ApiKey
+    | undefined {
+    return this.session;
   }
 
   async request<Data>(request: evedexApi.utils.Request): Promise<evedexApi.utils.Response<Data>> {
@@ -48,7 +52,7 @@ export class RestClient implements evedexApi.utils.HttpClient {
         data: res.data,
       };
     } catch (e) {
-      if (isAxiosError(e) && e.response) {
+      if (axios.isAxiosError(e) && e.response) {
         throw new evedexApi.utils.RequestError(e.response.statusText, {
           status: e.response.status,
           statusText: e.response.statusText,
@@ -63,17 +67,23 @@ export class RestClient implements evedexApi.utils.HttpClient {
   async authRequest<Data>(
     request: evedexApi.utils.Request,
   ): Promise<evedexApi.utils.Response<Data>> {
-    if (!this.jwt || !this.jwt.accessToken) {
+    if (!this.session) {
+      throw new UnauthorizedRequest();
+    }
+
+    const headers = { ...request.headers };
+    if ("accessToken" in this.session) {
+      headers["Authorization"] = `Bearer ${this.session.accessToken}`;
+    } else if ("apiKey" in this.session) {
+      headers["x-api-key"] = this.session.apiKey;
+    } else {
       throw new UnauthorizedRequest();
     }
 
     try {
       return await this.request({
         ...request,
-        headers: {
-          ...request.headers,
-          Authorization: `Bearer ${this.jwt.accessToken}`,
-        },
+        headers,
       });
     } catch (e) {
       if (
@@ -81,9 +91,9 @@ export class RestClient implements evedexApi.utils.HttpClient {
         e.response?.status === 401 &&
         this.options.authGateway
       ) {
-        if (this.options.authGateway && "refreshToken" in this.jwt) {
+        if (this.options.authGateway && "refreshToken" in this.session) {
           try {
-            const { token } = await this.options.authGateway.refresh(this.jwt); // todo: use queue
+            const { token } = await this.options.authGateway.refresh(this.session); // todo: use queue
             this.setSession(token);
             return await this.authRequest(request);
           } catch (e2) {
