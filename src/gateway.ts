@@ -5,6 +5,7 @@ import { Wallet } from "./utils/wallet";
 import { CentrifugeClient, CentrifugeSubscription } from "./utils/ws";
 import { Centrifuge } from "centrifuge";
 import { CollateralCurrency } from "./utils/types";
+import WebSocket from "ws";
 import Big from "big.js";
 
 export interface GatewayOptions {
@@ -15,14 +16,26 @@ export interface GatewayOptions {
       };
   exchangeURI: string;
   authURI: string;
+  centrifuge:
+    | CentrifugeClient
+    | {
+        uri: string;
+        prefix: string;
+      };
 }
 
 export class Gateway {
   private readonly httpClient: RestClient;
 
+  private readonly centrifugeClient: CentrifugeClient;
+
   public readonly authGateway: evedexApi.AuthRestGateway;
 
   public readonly exchangeGateway: evedexApi.ExchangeRestGateway;
+
+  public readonly wsGateway: evedexApi.ExchangeWsGateway;
+
+  public readonly onRecover = evedexApi.utils.signal<CentrifugeSubscription>();
 
   constructor(public readonly options: Readonly<GatewayOptions>) {
     this.httpClient =
@@ -40,12 +53,139 @@ export class Gateway {
       exchangeURI: options.exchangeURI,
       httpClient: this.httpClient,
     });
+
+    this.centrifugeClient =
+      options.centrifuge instanceof CentrifugeClient
+        ? options.centrifuge
+        : new CentrifugeClient(
+            new Centrifuge(options.centrifuge.uri, { websocket: WebSocket }),
+            options.centrifuge.prefix,
+          );
+    this.centrifugeClient.onRecover((channel) => this.onRecover(channel));
+    this.centrifugeClient.connect();
+    this.wsGateway = new evedexApi.ExchangeWsGateway({
+      wsClient: this.centrifugeClient,
+    });
+
+    this.wsGateway.onMatcherUpdate((matcherState) => this.updateMatcherState(matcherState));
+    this.wsGateway.onOrderBookBestUpdate((orderBook) => this.updateOrderBookBest(orderBook));
+    this.wsGateway.onOrderBookUpdate((orderBook) => this.updateOrderBook(orderBook));
   }
 
   get session() {
     return this.httpClient.getSession();
   }
 
+  private lastMatcherStateTime?: Date;
+
+  protected updateMatcherState(matcherState: evedexApi.MatcherUpdateEvent) {
+    if (
+      this.lastMatcherStateTime &&
+      this.lastMatcherStateTime >= new Date(matcherState.updatedAt)
+    ) {
+      return;
+    }
+
+    this.lastMatcherStateTime = new Date(matcherState.updatedAt);
+    this.onMatcherState(matcherState);
+  }
+
+  private lastOrderBookBestTime = new Map<string, number>();
+
+  protected updateOrderBookBest(orderBook: evedexApi.OrderBookBestUpdateEvent) {
+    if ((this.lastOrderBookBestTime.get(orderBook.instrument) ?? 0) >= orderBook.t) {
+      return;
+    }
+
+    this.lastOrderBookBestTime.set(orderBook.instrument, orderBook.t);
+    this.onOrderBookBestUpdate(orderBook);
+  }
+
+  private lastOrderBookTime = new Map<string, number>();
+
+  protected updateOrderBook(orderBook: evedexApi.OrderBookUpdateEvent) {
+    if ((this.lastOrderBookTime.get(orderBook.instrument) ?? 0) >= orderBook.t) {
+      return;
+    }
+
+    this.lastOrderBookTime.set(orderBook.instrument, orderBook.t);
+    this.onOrderBookUpdate(orderBook);
+  }
+
+  // Signals
+  public readonly onMatcherState = evedexApi.utils.signal<evedexApi.MatcherUpdateEvent>();
+
+  async listenMatcherState() {
+    if (this.lastMatcherStateTime !== undefined) return;
+
+    this.lastMatcherStateTime = new Date();
+    this.wsGateway.listenMatcher();
+
+    const matcherState = await this.exchangeGateway.getMarketInfo();
+    this.updateMatcherState({ state: matcherState.state, updatedAt: matcherState.updatedAt });
+  }
+
+  unListenMatcherState() {
+    this.wsGateway.unListenMatcher();
+    this.lastMatcherStateTime = undefined;
+  }
+
+  public readonly onOrderBookBestUpdate =
+    evedexApi.utils.signal<evedexApi.OrderBookBestUpdateEvent>();
+
+  async listenOrderBookBest(instrument: string) {
+    if (this.lastOrderBookBestTime.has(instrument)) {
+      return;
+    }
+
+    this.lastOrderBookBestTime.set(instrument, 0);
+    this.wsGateway.listenOrderBookBest({ instrument });
+
+    const orderBook = await this.exchangeGateway.getMarketDepth({
+      instrument,
+      maxLevel: 1,
+      roundPrice: evedexApi.OrderBookRoundPrices.OneTenth,
+    });
+    this.updateOrderBookBest({
+      instrument,
+      t: orderBook.t,
+      asks: orderBook.asks.length ? [orderBook.asks[0]] : [],
+      bids: orderBook.bids.length ? [orderBook.bids[orderBook.bids.length - 1]] : [],
+    });
+  }
+
+  unListenOrderBookBest(instrument: string) {
+    this.wsGateway.unListenOrderBookBest({ instrument });
+    this.lastOrderBookBestTime.delete(instrument);
+  }
+
+  public readonly onOrderBookUpdate = evedexApi.utils.signal<evedexApi.OrderBookUpdateEvent>();
+
+  async listenOrderBook(instrument: string) {
+    if (this.lastOrderBookTime.has(instrument)) {
+      return;
+    }
+
+    this.lastOrderBookTime.set(instrument, 0);
+    this.wsGateway.listenOrderBook({ instrument });
+
+    const orderBook = await this.exchangeGateway.getMarketDepth({
+      instrument,
+      maxLevel: 30,
+      roundPrice: evedexApi.OrderBookRoundPrices.OneTenth,
+    });
+    this.updateOrderBook({
+      instrument,
+      ...evedexApi.utils.expandOrderBook(orderBook),
+    });
+  }
+
+  unListenOrderBook(instrument: string) {
+    this.wsGateway.unListenOrderBook({ instrument });
+    this.lastOrderBookTime.delete(instrument);
+  }
+
+  // Actions
   async signIn(wallet: Wallet, message: string) {
     const session = await this.authGateway.signInSiwe({
       address: await wallet.getAddress(),
@@ -73,6 +213,7 @@ export interface AccountOptions {
 export class Account {
   constructor(private readonly options: Readonly<AccountOptions>) {}
 
+  // Getters
   get gateway() {
     return this.options.gateway;
   }
@@ -83,6 +224,10 @@ export class Account {
 
   get exchangeGateway() {
     return this.gateway.exchangeGateway;
+  }
+
+  get wsGateway() {
+    return this.gateway.wsGateway;
   }
 
   get authAccount() {
@@ -101,11 +246,8 @@ export class Account {
     return this.options.wallet;
   }
 
-  getBalance(centrifugeClient: BalanceOptions["centrifugeClient"]) {
-    return new Balance({
-      centrifugeClient,
-      account: this,
-    });
+  getBalance() {
+    return new Balance({ account: this });
   }
 
   // Actions
@@ -225,49 +367,62 @@ export interface Power {
 
 export interface BalanceOptions {
   account: Account;
-  centrifugeClient:
-    | CentrifugeClient
-    | {
-        url: string;
-        prefix: string;
-      };
 }
 
 export class Balance {
-  private readonly centrifugeClient: CentrifugeClient;
-
-  public readonly wsGateway: evedexApi.ExchangeWsGateway;
-
   private _listening = false;
+
+  constructor(private readonly options: BalanceOptions) {}
+
+  protected updateAccount(account: evedexApi.AccountEvent) {
+    if (new Date(this.options.account.exchangeAccount.updatedAt) >= new Date(account.updatedAt)) {
+      return;
+    }
+
+    this.options.account.exchangeAccount.marginCall = account.marginCall;
+    this.options.account.exchangeAccount.updatedAt = account.updatedAt;
+    this.onAccountUpdate(this.options.account.exchangeAccount);
+  }
 
   private funding = new Map<string, evedexApi.utils.Funding>();
 
+  protected updateFunding(funding: evedexApi.utils.Funding) {
+    const currentState = this.funding.get(funding.coin);
+    if (currentState && new Date(currentState.updatedAt) >= new Date(funding.updatedAt)) {
+      return;
+    }
+
+    const updated = {
+      coin: funding.coin,
+      quantity: Number(funding.quantity),
+      updatedAt: funding.updatedAt,
+    };
+    this.funding.set(funding.coin, updated);
+    this.onFundingUpdate(updated);
+  }
+
   private positions = new Map<string, evedexApi.utils.Position>();
+
+  protected updatePosition(position: evedexApi.utils.Position) {
+    const currentState = this.positions.get(position.instrument);
+    if (currentState && new Date(currentState.updatedAt) >= new Date(position.updatedAt)) {
+      return;
+    }
+
+    this.positions.set(position.instrument, position);
+    this.onPositionUpdate(position);
+  }
 
   private orders = new Map<string, evedexApi.utils.Order>();
 
-  public readonly onRecover = evedexApi.utils.signal<CentrifugeSubscription>();
+  protected updateOrder(order: evedexApi.utils.Order) {
+    const currentState = this.orders.get(order.id);
+    if (currentState && new Date(currentState.updatedAt) >= new Date(order.updatedAt)) {
+      return;
+    }
 
-  public readonly onAccountUpdate = evedexApi.utils.signal<evedexApi.utils.User>();
-
-  public readonly onFundingUpdate = evedexApi.utils.signal<evedexApi.utils.Funding>();
-
-  public readonly onPositionUpdate = evedexApi.utils.signal<evedexApi.utils.Position>();
-
-  public readonly onOrderUpdate = evedexApi.utils.signal<evedexApi.utils.Order>();
-
-  constructor(private readonly options: BalanceOptions) {
-    this.centrifugeClient =
-      options.centrifugeClient instanceof CentrifugeClient
-        ? options.centrifugeClient
-        : new CentrifugeClient(
-            new Centrifuge(options.centrifugeClient.url),
-            options.centrifugeClient.prefix,
-          );
-    this.centrifugeClient.onRecover((channel) => this.onRecover(channel));
-    this.wsGateway = new evedexApi.ExchangeWsGateway({
-      wsClient: this.centrifugeClient,
-    });
+    this.orders.set(order.id, order);
+    this.onOrderUpdate(order);
   }
 
   // Getters
@@ -451,65 +606,30 @@ export class Balance {
     };
   }
 
-  // Actions
-  protected updateAccount(account: evedexApi.AccountEvent) {
-    if (new Date(this.options.account.exchangeAccount.updatedAt) >= new Date(account.updatedAt)) {
-      return;
-    }
+  // Signals
+  public readonly onAccountUpdate = evedexApi.utils.signal<evedexApi.utils.User>();
 
-    this.options.account.exchangeAccount.marginCall = account.marginCall;
-    this.options.account.exchangeAccount.updatedAt = account.updatedAt;
-    this.onAccountUpdate(this.options.account.exchangeAccount);
-  }
+  public readonly onFundingUpdate = evedexApi.utils.signal<evedexApi.utils.Funding>();
 
-  protected updateFunding(funding: evedexApi.utils.Funding) {
-    const currentState = this.funding.get(funding.coin);
-    if (currentState && new Date(currentState.updatedAt) >= new Date(funding.updatedAt)) {
-      return;
-    }
+  public readonly onPositionUpdate = evedexApi.utils.signal<evedexApi.utils.Position>();
 
-    const updated = {
-      coin: funding.coin,
-      quantity: Number(funding.quantity),
-      updatedAt: funding.updatedAt,
-    };
-    this.funding.set(funding.coin, updated);
-    this.onFundingUpdate(updated);
-  }
-
-  protected updatePosition(position: evedexApi.utils.Position) {
-    const currentState = this.positions.get(position.instrument);
-    if (currentState && new Date(currentState.updatedAt) >= new Date(position.updatedAt)) {
-      return;
-    }
-
-    this.positions.set(position.instrument, position);
-    this.onPositionUpdate(position);
-  }
-
-  protected updateOrder(order: evedexApi.utils.Order) {
-    const currentState = this.orders.get(order.id);
-    if (currentState && new Date(currentState.updatedAt) >= new Date(order.updatedAt)) {
-      return;
-    }
-
-    this.orders.set(order.id, order);
-    this.onOrderUpdate(order);
-  }
+  public readonly onOrderUpdate = evedexApi.utils.signal<evedexApi.utils.Order>();
 
   async listen() {
-    const listenQuery = { userExchangeId: this.account.exchangeAccount.exchangeId };
+    if (this._listening) return this;
 
-    this.wsGateway.onAccountUpdate((account) => this.updateAccount(account));
-    this.wsGateway.listenAccount(listenQuery);
-    this.wsGateway.onFundingUpdate((funding) =>
+    this._listening = true;
+    const listenQuery = { userExchangeId: this.account.exchangeAccount.exchangeId };
+    this.gateway.wsGateway.onAccountUpdate((account) => this.updateAccount(account));
+    this.gateway.wsGateway.listenAccount(listenQuery);
+    this.gateway.wsGateway.onFundingUpdate((funding) =>
       this.updateFunding({ ...funding, quantity: Number(funding.quantity) }),
     );
-    this.wsGateway.listenFunding(listenQuery);
-    this.wsGateway.onPositionUpdate((position) => this.updatePosition(position));
-    this.wsGateway.listenPositions(listenQuery);
-    this.wsGateway.onOrderUpdate((order) => this.updateOrder(order));
-    this.wsGateway.listenOrders(listenQuery);
+    this.gateway.wsGateway.listenFunding(listenQuery);
+    this.gateway.wsGateway.onPositionUpdate((position) => this.updatePosition(position));
+    this.gateway.wsGateway.listenPositions(listenQuery);
+    this.gateway.wsGateway.onOrderUpdate((order) => this.updateOrder(order));
+    this.gateway.wsGateway.listenOrders(listenQuery);
 
     await Promise.all([
       this.gateway.exchangeGateway.me().then((account) =>
@@ -524,19 +644,20 @@ export class Balance {
         .then(({ list }) => list.forEach(this.updatePosition)),
       this.gateway.exchangeGateway.getOrders({}).then(({ list }) => list.forEach(this.updateOrder)),
     ]);
-    this._listening = true;
 
     return this;
   }
 
   async unListen() {
+    if (!this._listening) return this;
+
     const unListenQuery = { userExchangeId: this.account.exchangeAccount.exchangeId };
-    this.wsGateway.unListenAccount(unListenQuery);
-    this.wsGateway.unListenFunding(unListenQuery);
+    this.gateway.wsGateway.unListenAccount(unListenQuery);
+    this.gateway.wsGateway.unListenFunding(unListenQuery);
     this.funding.clear();
-    this.wsGateway.unListenPositions(unListenQuery);
+    this.gateway.wsGateway.unListenPositions(unListenQuery);
     this.positions.clear();
-    this.wsGateway.unListenOrders(unListenQuery);
+    this.gateway.wsGateway.unListenOrders(unListenQuery);
     this.orders.clear();
     this._listening = false;
 

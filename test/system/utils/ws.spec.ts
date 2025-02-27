@@ -3,7 +3,7 @@ import assert from "assert";
 import { Centrifuge } from "centrifuge";
 import WebSocket from "ws";
 
-describe("ExchangeWsGateway", () => {
+describe("CentrifugeClient", () => {
   const centrifugoClient = new src.utils.CentrifugeClient(
     new Centrifuge(config.centrifugoURI, { websocket: WebSocket }),
     config.centrifugoPrefix,

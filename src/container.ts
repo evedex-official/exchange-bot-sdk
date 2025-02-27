@@ -24,6 +24,10 @@ export class Container {
     return new Gateway({
       authURI: this.config.authURI,
       exchangeURI: this.config.exchangeURI,
+      centrifuge: {
+        uri: this.config.centrifugeURI,
+        prefix: this.config.centrifugePrefix,
+      },
     });
   }
 
@@ -42,12 +46,5 @@ export class Container {
     }
 
     return account;
-  }
-
-  accountBalance(account: Account) {
-    return account.getBalance({
-      url: this.config.centrifugeURI,
-      prefix: this.config.centrifugePrefix,
-    });
   }
 }

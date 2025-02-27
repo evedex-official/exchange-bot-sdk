@@ -73,7 +73,7 @@ export class RestClient implements evedexApi.utils.HttpClient {
 
     const headers = { ...request.headers };
     if ("accessToken" in this.session) {
-      headers["Authorization"] = `Bearer ${this.session.accessToken}`;
+      headers.Authorization = `Bearer ${this.session.accessToken}`;
     } else if ("apiKey" in this.session) {
       headers["x-api-key"] = this.session.apiKey;
     } else {
