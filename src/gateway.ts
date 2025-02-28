@@ -3,7 +3,7 @@ import * as evedexApi from "@eventhorizon/exchange-api";
 import { RestClient } from "./utils/rest";
 import { Wallet } from "./utils/wallet";
 import { CentrifugeClient, CentrifugeSubscription } from "./utils/ws";
-import { Centrifuge } from "centrifuge";
+import { Centrifuge, Options as CentrifugeOptions } from "centrifuge";
 import { CollateralCurrency } from "./utils/types";
 import Big from "big.js";
 
@@ -58,7 +58,10 @@ export class Gateway {
       options.centrifuge instanceof CentrifugeClient
         ? options.centrifuge
         : new CentrifugeClient(
-            new Centrifuge(options.centrifuge.uri, { websocket: options.centrifuge.websocket }),
+            new Centrifuge(
+              options.centrifuge.uri,
+              options.centrifuge.websocket ? { websocket: options.centrifuge.websocket } : {},
+            ),
             options.centrifuge.prefix,
           );
     this.centrifugeClient.onRecover((channel) => this.onRecover(channel));

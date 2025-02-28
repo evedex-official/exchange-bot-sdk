@@ -12,6 +12,7 @@ export interface ContainerConfig {
   authURI: string;
   centrifugeURI: string;
   centrifugePrefix: string;
+  centrifugeWebSocket?: any;
   wallets: Record<string, WalletOptions>;
 }
 
@@ -27,6 +28,7 @@ export class Container {
       centrifuge: {
         uri: this.config.centrifugeURI,
         prefix: this.config.centrifugePrefix,
+        websocket: this.config.centrifugeWebSocket,
       },
     });
   }
