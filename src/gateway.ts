@@ -5,7 +5,6 @@ import { Wallet } from "./utils/wallet";
 import { CentrifugeClient, CentrifugeSubscription } from "./utils/ws";
 import { Centrifuge } from "centrifuge";
 import { CollateralCurrency } from "./utils/types";
-import WebSocket from "ws";
 import Big from "big.js";
 
 export interface GatewayOptions {
@@ -21,6 +20,7 @@ export interface GatewayOptions {
     | {
         uri: string;
         prefix: string;
+        websocket?: any;
       };
 }
 
@@ -58,7 +58,7 @@ export class Gateway {
       options.centrifuge instanceof CentrifugeClient
         ? options.centrifuge
         : new CentrifugeClient(
-            new Centrifuge(options.centrifuge.uri, { websocket: WebSocket }),
+            new Centrifuge(options.centrifuge.uri, { websocket: options.centrifuge.websocket }),
             options.centrifuge.prefix,
           );
     this.centrifugeClient.onRecover((channel) => this.onRecover(channel));

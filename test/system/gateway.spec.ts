@@ -10,6 +10,7 @@ describe("Gateway", () => {
     centrifuge: {
       uri: config.centrifugoURI,
       prefix: config.centrifugoPrefix,
+      websocket: WebSocket,
     },
   });
 
