@@ -742,12 +742,18 @@ export class Balance {
           user: account.id,
         }),
       ),
-      this.gateway.exchangeGateway.getFunding().then((list) => list.forEach(this.updateFunding)),
+      this.gateway.exchangeGateway
+        .getFunding()
+        .then((list) => list.forEach((data) => this.updateFunding(data))),
       this.gateway.exchangeGateway
         .getPositions()
-        .then(({ list }) => list.forEach(this.updatePosition)),
-      this.gateway.exchangeGateway.getOrders({}).then(({ list }) => list.forEach(this.updateOrder)),
-      this.gateway.exchangeGateway.getTpSl({}).then(({ list }) => list.forEach(this.updateTpSl)),
+        .then(({ list }) => list.forEach((data) => this.updatePosition(data))),
+      this.gateway.exchangeGateway
+        .getOrders({})
+        .then(({ list }) => list.forEach((data) => this.updateOrder(data))),
+      this.gateway.exchangeGateway
+        .getTpSl({})
+        .then(({ list }) => list.forEach((data) => this.updateTpSl(data))),
     ]);
 
     return this;
