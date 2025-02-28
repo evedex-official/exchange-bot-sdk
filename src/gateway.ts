@@ -159,7 +159,7 @@ export class Gateway {
     const orderBook = await this.exchangeGateway.getMarketDepth({
       instrument,
       maxLevel: 1,
-      roundPrice: evedexApi.OrderBookRoundPrices.OneTenth,
+      roundPrice: evedexApi.utils.OrderBookRoundPrices.OneTenth,
     });
     this.updateOrderBookBest({
       instrument,
@@ -187,7 +187,7 @@ export class Gateway {
     const orderBook = await this.exchangeGateway.getMarketDepth({
       instrument,
       maxLevel: 30,
-      roundPrice: evedexApi.OrderBookRoundPrices.OneTenth,
+      roundPrice: evedexApi.utils.OrderBookRoundPrices.OneTenth,
     });
     this.updateOrderBook({
       instrument,
