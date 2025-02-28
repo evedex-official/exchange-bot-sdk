@@ -70,6 +70,7 @@ export class Gateway {
     this.wsGateway.onMatcherUpdate((matcherState) => this.updateMatcherState(matcherState));
     this.wsGateway.onOrderBookBestUpdate((orderBook) => this.updateOrderBookBest(orderBook));
     this.wsGateway.onOrderBookUpdate((orderBook) => this.updateOrderBook(orderBook));
+    this.wsGateway.onTrade((trade) => this.updateTrade(trade));
   }
 
   get session() {
@@ -110,6 +111,17 @@ export class Gateway {
 
     this.lastOrderBookTime.set(orderBook.instrument, orderBook.t);
     this.onOrderBookUpdate(orderBook);
+  }
+
+  private lastTradeDate = new Map<string, Date>();
+
+  protected updateTrade(trade: evedexApi.TradeEvent) {
+    if ((this.lastTradeDate.get(trade.instrument) ?? new Date(0)) >= new Date(trade.createdAt)) {
+      return;
+    }
+
+    this.lastTradeDate.set(trade.instrument, new Date(trade.createdAt));
+    this.onTrade(trade);
   }
 
   // Signals
@@ -183,6 +195,22 @@ export class Gateway {
   unListenOrderBook(instrument: string) {
     this.wsGateway.unListenOrderBook({ instrument });
     this.lastOrderBookTime.delete(instrument);
+  }
+
+  public readonly onTrade = evedexApi.utils.signal<evedexApi.TradeEvent>();
+
+  async listenTrades(instrument: string) {
+    if (this.lastTradeDate.has(instrument)) {
+      return;
+    }
+
+    this.lastTradeDate.set(instrument, new Date(0));
+    this.wsGateway.listenTrades({ instrument });
+  }
+
+  unListenTrades(instrument: string) {
+    this.wsGateway.unListenTrades({ instrument });
+    this.lastTradeDate.delete(instrument);
   }
 
   // Actions
@@ -425,6 +453,18 @@ export class Balance {
     this.onOrderUpdate(order);
   }
 
+  private tpsl = new Map<string, evedexApi.utils.TpSl>();
+
+  protected updateTpSl(tpsl: evedexApi.utils.TpSl) {
+    const currentState = this.tpsl.get(tpsl.id);
+    if (currentState && new Date(currentState.updatedAt) >= new Date(tpsl.updatedAt)) {
+      return;
+    }
+
+    this.tpsl.set(tpsl.id, tpsl);
+    this.onTpSlUpdate(tpsl);
+  }
+
   // Getters
   get account() {
     return this.options.account;
@@ -438,18 +478,30 @@ export class Balance {
     return this._listening;
   }
 
-  getFunding(currency: CollateralCurrency) {
+  getFundingQuantity(currency: CollateralCurrency) {
     return String(this.funding.get(currency)?.quantity ?? 0);
+  }
+
+  getPositionList() {
+    return Array.from(this.positions.values());
   }
 
   getPosition(instrument: string) {
     return this.positions.get(instrument);
   }
 
+  getOrderList() {
+    return Array.from(this.orders.values());
+  }
+
+  getTpSlList() {
+    return Array.from(this.tpsl.values());
+  }
+
   getAvailableBalance(): AvailableBalance {
     const funding = {
       currency: CollateralCurrency.USDT,
-      balance: this.getFunding(CollateralCurrency.USDT),
+      balance: this.getFundingQuantity(CollateralCurrency.USDT),
     };
     const position = Array.from(
       this.positions.values(),
@@ -567,7 +619,7 @@ export class Balance {
       new Map<evedexCrypto.utils.Side, Big.Big>(),
     );
 
-    const funding = Big(this.getFunding(CollateralCurrency.USDT));
+    const funding = Big(this.getFundingQuantity(CollateralCurrency.USDT));
     // Buy
     const buyPosition =
       position && position.side === evedexCrypto.utils.Side.Buy
@@ -615,6 +667,8 @@ export class Balance {
 
   public readonly onOrderUpdate = evedexApi.utils.signal<evedexApi.utils.Order>();
 
+  public readonly onTpSlUpdate = evedexApi.utils.signal<evedexApi.utils.TpSl>();
+
   async listen() {
     if (this._listening) return this;
 
@@ -630,6 +684,8 @@ export class Balance {
     this.gateway.wsGateway.listenPositions(listenQuery);
     this.gateway.wsGateway.onOrderUpdate((order) => this.updateOrder(order));
     this.gateway.wsGateway.listenOrders(listenQuery);
+    this.gateway.wsGateway.onTpSlUpdate((tpsl) => this.updateTpSl(tpsl));
+    this.gateway.wsGateway.listenTpSl(listenQuery);
 
     await Promise.all([
       this.gateway.exchangeGateway.me().then((account) =>
@@ -643,6 +699,7 @@ export class Balance {
         .getPositions()
         .then(({ list }) => list.forEach(this.updatePosition)),
       this.gateway.exchangeGateway.getOrders({}).then(({ list }) => list.forEach(this.updateOrder)),
+      this.gateway.exchangeGateway.getTpSl({}).then(({ list }) => list.forEach(this.updateTpSl)),
     ]);
 
     return this;
@@ -659,6 +716,8 @@ export class Balance {
     this.positions.clear();
     this.gateway.wsGateway.unListenOrders(unListenQuery);
     this.orders.clear();
+    this.gateway.wsGateway.unListenTpSl(unListenQuery);
+    this.tpsl.clear();
     this._listening = false;
 
     return this;
