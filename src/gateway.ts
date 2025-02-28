@@ -217,6 +217,11 @@ export class Gateway {
   }
 
   // Actions
+  skipSession() {
+    if (!this.session) return;
+    this.httpClient.skipSession();
+  }
+
   async createApiKeyAccount(apiKey: evedexApi.utils.ApiKey) {
     this.httpClient.setSession(apiKey);
 

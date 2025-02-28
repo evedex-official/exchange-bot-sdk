@@ -25,6 +25,10 @@ export class RestClient implements evedexApi.utils.HttpClient {
     this.options.authGateway = authGateway;
   }
 
+  skipSession() {
+    this.session = undefined;
+  }
+
   setSession(session: evedexApi.utils.JWT | evedexApi.utils.RefreshedJWT | evedexApi.utils.ApiKey) {
     this.session = session;
   }

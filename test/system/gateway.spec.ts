@@ -1,6 +1,5 @@
 import { config, src, waitSignal } from "../common";
 import assert from "assert";
-import { Centrifuge } from "centrifuge";
 import WebSocket from "ws";
 
 describe("Gateway", () => {
