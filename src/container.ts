@@ -1,4 +1,4 @@
-import { Account, Gateway } from "./gateway";
+import { WalletAccount, Gateway } from "./gateway";
 import { Wallet, WalletOptions } from "./utils";
 
 export class WalletNotFoundError extends Error {
@@ -16,7 +16,7 @@ export interface ContainerConfig {
 }
 
 export class Container {
-  private readonly accountsPool = new Map<string, Promise<Account>>();
+  private readonly accountsPool = new Map<string, Promise<WalletAccount>>();
 
   constructor(public config: ContainerConfig) {}
 
@@ -41,7 +41,7 @@ export class Container {
   account(walletName: string) {
     let account = this.accountsPool.get(walletName);
     if (!account) {
-      account = this.gateway().signIn(this.wallet(walletName), "exchange-bot-sdk");
+      account = this.gateway().signInWalletAccount(this.wallet(walletName), "exchange-bot-sdk");
       this.accountsPool.set(walletName, account);
     }
 

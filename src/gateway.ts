@@ -214,7 +214,22 @@ export class Gateway {
   }
 
   // Actions
-  async signIn(wallet: Wallet, message: string) {
+  async createAccount(session: evedexApi.Session) {
+    this.httpClient.setSession(session.token);
+
+    return new Account({
+      gateway: this,
+      authAccount: session.user,
+      exchangeAccount: await this.exchangeGateway.me(),
+    });
+  }
+
+  async signInAccount(siwe: evedexApi.SignInSiweQuery) {
+    const session = await this.authGateway.signInSiwe(siwe);
+    return this.createAccount(session);
+  }
+
+  async signInWalletAccount(wallet: Wallet, message: string) {
     const session = await this.authGateway.signInSiwe({
       address: await wallet.getAddress(),
       message,
@@ -222,7 +237,7 @@ export class Gateway {
     });
     this.httpClient.setSession(session.token);
 
-    return new Account({
+    return new WalletAccount({
       gateway: this,
       wallet,
       authAccount: session.user,
@@ -233,7 +248,6 @@ export class Gateway {
 
 export interface AccountOptions {
   gateway: Gateway;
-  wallet: Wallet;
   authAccount: evedexApi.User;
   exchangeAccount: evedexApi.utils.User;
 }
@@ -270,12 +284,21 @@ export class Account {
     return this.options.gateway.session;
   }
 
-  get wallet() {
-    return this.options.wallet;
-  }
-
   getBalance() {
     return new Balance({ account: this });
+  }
+}
+
+export interface WalletAccountOptions extends AccountOptions {
+  wallet: Wallet;
+}
+
+export class WalletAccount extends Account {
+  public readonly wallet: Wallet;
+
+  constructor(options: Readonly<WalletAccountOptions>) {
+    super(options);
+    this.wallet = options.wallet;
   }
 
   // Actions
