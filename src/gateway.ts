@@ -217,19 +217,28 @@ export class Gateway {
   }
 
   // Actions
-  async createAccount(session: evedexApi.Session) {
+  async createApiKeyAccount(apiKey: evedexApi.utils.ApiKey) {
+    this.httpClient.setSession(apiKey);
+
+    return new ApiKeyAccount({
+      gateway: this,
+      exchangeAccount: await this.exchangeGateway.me(),
+    });
+  }
+
+  async createSessionAccount(session: evedexApi.Session) {
     this.httpClient.setSession(session.token);
 
-    return new Account({
+    return new SessionAccount({
       gateway: this,
       authAccount: session.user,
       exchangeAccount: await this.exchangeGateway.me(),
     });
   }
 
-  async signInAccount(siwe: evedexApi.SignInSiweQuery) {
+  async signInSessionAccount(siwe: evedexApi.SignInSiweQuery) {
     const session = await this.authGateway.signInSiwe(siwe);
-    return this.createAccount(session);
+    return this.createSessionAccount(session);
   }
 
   async signInWalletAccount(wallet: Wallet, message: string) {
@@ -249,14 +258,13 @@ export class Gateway {
   }
 }
 
-export interface AccountOptions {
+export interface ApiKeyAccountOptions {
   gateway: Gateway;
-  authAccount: evedexApi.User;
   exchangeAccount: evedexApi.utils.User;
 }
 
-export class Account {
-  constructor(private readonly options: Readonly<AccountOptions>) {}
+export class ApiKeyAccount {
+  constructor(private readonly options: Readonly<ApiKeyAccountOptions>) {}
 
   // Getters
   get gateway() {
@@ -275,10 +283,6 @@ export class Account {
     return this.gateway.wsGateway;
   }
 
-  get authAccount() {
-    return this.options.authAccount;
-  }
-
   get exchangeAccount() {
     return this.options.exchangeAccount;
   }
@@ -292,11 +296,24 @@ export class Account {
   }
 }
 
-export interface WalletAccountOptions extends AccountOptions {
+export interface SessionAccountOptions extends ApiKeyAccountOptions {
+  authAccount: evedexApi.User;
+}
+
+export class SessionAccount extends ApiKeyAccount {
+  public readonly authAccount: evedexApi.User;
+
+  constructor(options: Readonly<SessionAccountOptions>) {
+    super(options);
+    this.authAccount = options.authAccount;
+  }
+}
+
+export interface WalletAccountOptions extends SessionAccountOptions {
   wallet: Wallet;
 }
 
-export class WalletAccount extends Account {
+export class WalletAccount extends SessionAccount {
   public readonly wallet: Wallet;
 
   constructor(options: Readonly<WalletAccountOptions>) {
@@ -420,7 +437,7 @@ export interface Power {
 }
 
 export interface BalanceOptions {
-  account: Account;
+  account: ApiKeyAccount;
 }
 
 export class Balance {
