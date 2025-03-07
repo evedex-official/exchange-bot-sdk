@@ -1,5 +1,48 @@
 # exchange-bot-sdk
 
+## Установка
+1. Добавить в проект файл .npmrc следующего содержания
+```
+@eventhorizon:registry=https://gitlab.eventhorizon.life/api/v4/groups/59/-/packages/npm/
+```
+2. npm i @eventhorizon/exchange-bot-sdk
+
+## Конфигурация
+
+### DEVELOPMENT ENVIRONMENT
+```
+  const container = new evedexSdk.Container({
+    exchangeURI: "https://exchange.evedex.tech",
+    authURI:  "https://auth.evedex.tech",
+    centrifugeURI: "wss://stream.evedex.tech/connection/websocket",
+    centrifugePrefix: "futures-perp-dev",
+    centrifugeWebSocket: WebSocket,
+    wallets: {
+      baseAccount: {
+        privateKey: "0x...",
+        chain: "16182",
+      },
+    },
+  });
+```
+
+### PRODUCTION ENVIRONMENT
+```
+  const container = new evedexSdk.Container({
+    exchangeURI: "https://exchange.evedex.com",
+    authURI:  "https://auth.evedex.com",
+    centrifugeURI: "wss://stream.evedex.com/connection/websocket",
+    centrifugePrefix: "futures-perp-dev",
+    centrifugeWebSocket: WebSocket,
+    wallets: {
+      baseAccount: {
+        privateKey: "0x...",
+        chain: "161803",
+      },
+    },
+  });
+```
+
 ## Инициализация
 
 Для взаимодействия с открытыми методами биржи, используется экземпляр класса `Gateway`, принимающий следующие опции инициализации:
