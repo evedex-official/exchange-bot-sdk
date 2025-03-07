@@ -17,12 +17,12 @@ import * as evedexSdk from "@eventhorizon/exchange-bot-sdk";
 const gateway = new evedexSdk.Gateway({
   httpClient: {},
   centrifuge: {
-    uri: "wss://ws.eh-dev.app/connection/websocket",
+    uri: "wss://stream.evedex.tech/connection/websocket",
     prefix: "futures-perp-dev",
     websocket: WebSocket, // конструктор websocket клиента, используемого в данном окружении
   },
-  exchangeURI: "https://exchange.eh-dev.app",
-  authURI: "https://auth.eh-dev.app",
+  exchangeURI: "https://exchange.evedex.tech",
+  authURI: "https://auth.evedex.tech",
 });
 
 gateway.onOrderBookBestUpdate((bestPrices) => console.info(bestPrices));
