@@ -26,13 +26,30 @@
   });
 ```
 
+### DEMO TRADING ENVIRONMENT
+```
+  const container = new evedexSdk.Container({
+    exchangeURI: "https://demo-exchange-api.evedex.com",
+    authURI:  "https://auth.evedex.com",
+    centrifugeURI: "wss://stream.evedex.com/connection/websocket",
+    centrifugePrefix: "futures-perp-demo",
+    centrifugeWebSocket: WebSocket,
+    wallets: {
+      baseAccount: {
+        privateKey: "0x...",
+        chain: "16182",
+      },
+    },
+  });
+```
+
 ### PRODUCTION ENVIRONMENT
 ```
   const container = new evedexSdk.Container({
-    exchangeURI: "https://exchange.evedex.com",
+    exchangeURI: "https://exchange-api.evedex.com",
     authURI:  "https://auth.evedex.com",
     centrifugeURI: "wss://stream.evedex.com/connection/websocket",
-    centrifugePrefix: "futures-perp-dev",
+    centrifugePrefix: "futures-perp",
     centrifugeWebSocket: WebSocket,
     wallets: {
       baseAccount: {
