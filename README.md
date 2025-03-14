@@ -196,8 +196,8 @@ const container = new evedexSdk.Container({
 });
 
 const gateway = container.gateway();
-const baseWallet = gateway.wallet("baseAccount");
-const baseWalletAccount = await gateway.account("baseAccount");
+const baseWallet = container.wallet("baseAccount");
+const baseWalletAccount = await container.account("baseAccount");
 
 const accountBalance = baseWalletAccount.getBalance();
 accountBalance.onPositionUpdate((position) => console.info(position));
