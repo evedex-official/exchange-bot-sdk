@@ -14,7 +14,7 @@
   const container = new evedexSdk.Container({
     exchangeURI: "https://exchange.evedex.tech",
     authURI:  "https://auth.evedex.tech",
-    centrifugeURI: "wss://stream.evedex.tech/connection/websocket",
+    centrifugeURI: "wss://ws.evedex.tech/connection/websocket",
     centrifugePrefix: "futures-perp-dev",
     centrifugeWebSocket: WebSocket,
     wallets: {
@@ -31,7 +31,7 @@
   const container = new evedexSdk.Container({
     exchangeURI: "https://demo-exchange-api.evedex.com",
     authURI:  "https://auth.evedex.com",
-    centrifugeURI: "wss://stream.evedex.com/connection/websocket",
+    centrifugeURI: "wss://ws.evedex.com/connection/websocket",
     centrifugePrefix: "futures-perp-demo",
     centrifugeWebSocket: WebSocket,
     wallets: {
@@ -48,7 +48,7 @@
   const container = new evedexSdk.Container({
     exchangeURI: "https://exchange-api.evedex.com",
     authURI:  "https://auth.evedex.com",
-    centrifugeURI: "wss://stream.evedex.com/connection/websocket",
+    centrifugeURI: "wss://ws.evedex.com/connection/websocket",
     centrifugePrefix: "futures-perp",
     centrifugeWebSocket: WebSocket,
     wallets: {
@@ -77,7 +77,7 @@ import * as evedexSdk from "@eventhorizon/exchange-bot-sdk";
 const gateway = new evedexSdk.Gateway({
   httpClient: {},
   centrifuge: {
-    uri: "wss://stream.evedex.tech/connection/websocket",
+    uri: "wss://ws.evedex.tech/connection/websocket",
     prefix: "futures-perp-dev",
     websocket: WebSocket, // конструктор websocket клиента, используемого в данном окружении
   },
