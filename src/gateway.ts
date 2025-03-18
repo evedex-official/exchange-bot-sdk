@@ -6,6 +6,7 @@ import { CentrifugeClient, CentrifugeSubscription } from "./utils/ws";
 import { Centrifuge, Options as CentrifugeOptions } from "centrifuge";
 import { CollateralCurrency } from "./utils/types";
 import Big from "big.js";
+import { generateShortUuid } from "./utils";
 
 export interface GatewayOptions {
   httpClient?:
@@ -335,8 +336,13 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.withdraw(await this.signWithdraw(withdraw));
   }
 
-  signClosePositionOrder(order: evedexCrypto.utils.PositionCloseOrder) {
-    return evedexCrypto.signPositionCloseOrder(this.wallet, order);
+  signClosePositionOrder(
+    order: Omit<evedexCrypto.utils.PositionCloseOrder, "id"> & { id?: string },
+  ) {
+    return evedexCrypto.signPositionCloseOrder(this.wallet, {
+      ...order,
+      id: order.id ?? generateShortUuid(),
+    });
   }
 
   async createClosePositionOrder(order: evedexCrypto.utils.PositionCloseOrder) {
@@ -347,8 +353,11 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.updatePosition(query);
   }
 
-  signLimitOrder(order: evedexCrypto.utils.LimitOrder) {
-    return evedexCrypto.signLimitOrder(this.wallet, order);
+  signLimitOrder(order: Omit<evedexCrypto.utils.LimitOrder, "id"> & { id?: string }) {
+    return evedexCrypto.signLimitOrder(this.wallet, {
+      ...order,
+      id: order.id ?? generateShortUuid(),
+    });
   }
 
   async createLimitOrder(order: evedexCrypto.utils.LimitOrder) {
@@ -363,16 +372,22 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.replaceLimitOrder(await this.signReplaceLimitOrder(order));
   }
 
-  signMarketOrder(order: evedexCrypto.utils.MarketOrder) {
-    return evedexCrypto.signMarketOrder(this.wallet, order);
+  signMarketOrder(order: Omit<evedexCrypto.utils.MarketOrder, "id"> & { id?: string }) {
+    return evedexCrypto.signMarketOrder(this.wallet, {
+      ...order,
+      id: order.id ?? generateShortUuid(),
+    });
   }
 
   async createMarketOrder(order: evedexCrypto.utils.MarketOrder) {
     return this.exchangeGateway.createMarketOrder(await this.signMarketOrder(order));
   }
 
-  signStopLimitOrder(order: evedexCrypto.utils.StopLimitOrder) {
-    return evedexCrypto.signStopLimitOrder(this.wallet, order);
+  signStopLimitOrder(order: Omit<evedexCrypto.utils.StopLimitOrder, "id"> & { id?: string }) {
+    return evedexCrypto.signStopLimitOrder(this.wallet, {
+      ...order,
+      id: order.id ?? generateShortUuid(),
+    });
   }
 
   async createStopLimitOrder(order: evedexCrypto.utils.StopLimitOrder) {
