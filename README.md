@@ -160,8 +160,8 @@ const wallet = new Wallet({
     privateKey,
     chain: '16182', // так же может использоваться rpc-провайдер для автоматического определения chainId
 });
-const message = '...'; // любое сообщение для авторизации с помощью SIWE
-const walletAccount = await gateway.signInWalletAccount(wallet, message);
+
+const walletAccount = await gateway.signInWalletAccount(wallet);
 
 const accountBalance = walletAccount.getBalance();
 accountBalance.onPositionUpdate((position) => console.info(position));
