@@ -43,7 +43,7 @@ export class Container {
   account(walletName: string) {
     let account = this.accountsPool.get(walletName);
     if (!account) {
-      account = this.gateway().signInWalletAccount(this.wallet(walletName), "exchange-bot-sdk");
+      account = this.gateway().signInWalletAccount(this.wallet(walletName));
       this.accountsPool.set(walletName, account);
     }
 

@@ -4,6 +4,7 @@ import { RestClient } from "./utils/rest";
 import { Wallet } from "./utils/wallet";
 import { CentrifugeClient, CentrifugeSubscription } from "./utils/ws";
 import { Centrifuge, Options as CentrifugeOptions } from "centrifuge";
+import { SiweMessage } from "siwe";
 import { CollateralCurrency } from "./utils/types";
 import Big from "big.js";
 import { generateShortUuid } from "./utils";
@@ -242,17 +243,39 @@ export class Gateway {
     });
   }
 
+  async getNonce() {
+    const { nonce } = await this.authGateway.getNonce();
+    return nonce;
+  }
+
+  getSiweMessage(nonce: string, address: string, expirationTime?: string) {
+    return new SiweMessage({
+      scheme: "https",
+      domain: "evedex.com",
+      address,
+      statement: "Sign in to evedex.com",
+      nonce,
+      expirationTime,
+    }).prepareMessage();
+  }
+
   async signInSessionAccount(siwe: evedexApi.SignInSiweQuery) {
     const session = await this.authGateway.signInSiwe(siwe);
     return this.createSessionAccount(session);
   }
 
-  async signInWalletAccount(wallet: Wallet, message: string) {
+  async signInWalletAccount(wallet: Wallet) {
+    const [nonce, address] = await Promise.all([this.getNonce(), wallet.getAddress()]);
+
+    const message = this.getSiweMessage(nonce, address);
+
     const session = await this.authGateway.signInSiwe({
-      address: await wallet.getAddress(),
+      address,
       message,
+      nonce,
       signature: await wallet.signMessage(message),
     });
+
     this.httpClient.setSession(session.token);
 
     return new WalletAccount({

@@ -62,10 +62,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@eventhorizon/exchange-api": "^1.0.23",
+    "@eventhorizon/exchange-api": "^1.0.24",
     "@eventhorizon/exchange-crypto": "^1.0.5",
     "big.js": "^6.2.2",
     "ethers": "^6.13.5",
+    "siwe": "^3.0.0",
     "uuid": "^11.1.0"
   }
 }
