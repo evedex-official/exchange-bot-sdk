@@ -10,6 +10,7 @@
 ## Конфигурация
 
 ### DEVELOPMENT ENVIRONMENT
+
 ```
   const container = new evedexSdk.Container({
     exchangeURI: "https://exchange.evedex.tech",
