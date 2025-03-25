@@ -254,6 +254,7 @@ export class Gateway {
       domain: "evedex.com",
       address,
       statement: "Sign in to evedex.com",
+      uri: "https://evedex.com",
       nonce,
       expirationTime,
     }).prepareMessage();
