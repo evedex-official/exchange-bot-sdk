@@ -257,6 +257,7 @@ export class Gateway {
       uri: "https://evedex.com",
       nonce,
       expirationTime,
+      version: "1",
     }).prepareMessage();
   }
 
