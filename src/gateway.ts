@@ -368,7 +368,9 @@ export class WalletAccount extends SessionAccount {
     });
   }
 
-  async createClosePositionOrder(order: evedexCrypto.utils.PositionCloseOrder) {
+  async createClosePositionOrder(
+    order: Omit<evedexCrypto.utils.PositionCloseOrder, "id"> & { id?: string },
+  ) {
     return this.exchangeGateway.closePosition(await this.signClosePositionOrder(order));
   }
 
@@ -383,7 +385,7 @@ export class WalletAccount extends SessionAccount {
     });
   }
 
-  async createLimitOrder(order: evedexCrypto.utils.LimitOrder) {
+  async createLimitOrder(order: Omit<evedexCrypto.utils.LimitOrder, "id"> & { id?: string }) {
     return this.exchangeGateway.createLimitOrder(await this.signLimitOrder(order));
   }
 
@@ -402,7 +404,7 @@ export class WalletAccount extends SessionAccount {
     });
   }
 
-  async createMarketOrder(order: evedexCrypto.utils.MarketOrder) {
+  async createMarketOrder(order: Omit<evedexCrypto.utils.MarketOrder, "id"> & { id?: string }) {
     return this.exchangeGateway.createMarketOrder(await this.signMarketOrder(order));
   }
 
@@ -413,7 +415,9 @@ export class WalletAccount extends SessionAccount {
     });
   }
 
-  async createStopLimitOrder(order: evedexCrypto.utils.StopLimitOrder) {
+  async createStopLimitOrder(
+    order: Omit<evedexCrypto.utils.StopLimitOrder, "id"> & { id?: string },
+  ) {
     return this.exchangeGateway.createStopLimitOrder(await this.signStopLimitOrder(order));
   }
 
