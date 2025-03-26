@@ -248,15 +248,16 @@ export class Gateway {
     return nonce;
   }
 
-  getSiweMessage(nonce: string, address: string, expirationTime?: string) {
+  getSiweMessage(nonce: string, address: string, chainId: string, expirationTime?: string) {
     return new SiweMessage({
       scheme: "https",
       domain: "evedex.com",
+      uri: "https://evedex.com",
       address,
       statement: "Sign in to evedex.com",
-      uri: "https://evedex.com",
       nonce,
       expirationTime,
+      chainId: Number(chainId),
       version: "1",
     }).prepareMessage();
   }
@@ -267,9 +268,13 @@ export class Gateway {
   }
 
   async signInWalletAccount(wallet: Wallet) {
-    const [nonce, address] = await Promise.all([this.getNonce(), wallet.getAddress()]);
+    const [nonce, address, chainId] = await Promise.all([
+      this.getNonce(),
+      wallet.getAddress(),
+      wallet.getChainId(),
+    ]);
 
-    const message = this.getSiweMessage(nonce, address);
+    const message = this.getSiweMessage(nonce, address, chainId);
 
     const session = await this.authGateway.signInSiwe({
       address,
