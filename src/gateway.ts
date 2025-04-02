@@ -107,10 +107,24 @@ export class Gateway {
     this.wsGateway.onOrderBookBestUpdate((orderBook) => this.updateOrderBookBest(orderBook));
     this.wsGateway.onOrderBookUpdate((orderBook) => this.updateOrderBook(orderBook));
     this.wsGateway.onTrade((trade) => this.updateTrade(trade));
+    this.wsGateway.onFundingRateUpdate((fundingRate) => this.updateFundingRateState(fundingRate));
   }
 
   get session() {
     return this.httpClient.getSession();
+  }
+
+  protected updateFundingRateState(fundingRateState: evedexApi.FundingRateEvent) {
+    if (
+      (this.lastInstrumentFundingRateTime.get(fundingRateState.instrument) ?? 0) >=
+      fundingRateState.createdAt
+    ) {
+      return;
+    }
+
+    this.lastInstrumentFundingRateTime.set(fundingRateState.instrument, fundingRateState.createdAt);
+
+    this.onFundingRateUpdate(fundingRateState);
   }
 
   private lastMatcherStateTime?: Date;
@@ -160,7 +174,45 @@ export class Gateway {
     this.onTrade(trade);
   }
 
+  public instruments = new Map<string, evedexApi.utils.InstrumentMetrics>();
+
+  async getInstrumentsMetricsMap() {
+    this.instruments = new Map(
+      (await this.exchangeGateway.getInstrumentsMetrics()).map((instrumentData) => [
+        instrumentData.name,
+        instrumentData,
+      ]),
+    );
+  }
+
   // Signals
+
+  private lastInstrumentFundingRateTime = new Map<string, number>();
+
+  public readonly onFundingRateUpdate = evedexApi.utils.signal<evedexApi.FundingRateEvent>();
+
+  async listenFundingRateState() {
+    if (this.lastInstrumentFundingRateTime.size > 0) return;
+
+    this.wsGateway.listenFundingRate();
+
+    await this.getInstrumentsMetricsMap();
+
+    this.instruments.forEach((instrument) => {
+      this.updateFundingRateState({
+        instrument: instrument.name,
+        createdAt: instrument.fundingRateCreatedAt.getTime(),
+        fundingRate: String(instrument.fundingRate),
+      });
+    });
+  }
+
+  unListenFundingRateState() {
+    this.lastInstrumentFundingRateTime.clear();
+
+    this.wsGateway.unListenFundingRate();
+  }
+
   public readonly onMatcherState = evedexApi.utils.signal<evedexApi.MatcherUpdateEvent>();
 
   async listenMatcherState() {
