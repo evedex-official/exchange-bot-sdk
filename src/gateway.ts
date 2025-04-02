@@ -3,9 +3,40 @@ import * as evedexApi from "@eventhorizon/exchange-api";
 import { RestClient } from "./utils/rest";
 import { Wallet } from "./utils/wallet";
 import { CentrifugeClient, CentrifugeSubscription } from "./utils/ws";
-import { Centrifuge, Options as CentrifugeOptions } from "centrifuge";
+import { Centrifuge } from "centrifuge";
 import { SiweMessage } from "siwe";
-import { CollateralCurrency } from "./utils/types";
+import {
+  AccountEvent,
+  ApiKey,
+  CollateralCurrency,
+  Funding,
+  LimitOrderPayload,
+  MarketOrderPayload,
+  MatcherUpdateEvent,
+  Order,
+  OrderBookBestUpdateEvent,
+  OrderBookRoundPrices,
+  OrderBookUpdateEvent,
+  OrderCancelQuery,
+  OrderMassCancelByIdQuery,
+  OrderMassCancelQuery,
+  Position,
+  PositionCloseOrderPayload,
+  PositionUpdateQuery,
+  ReplaceLimitOrder,
+  ReplaceStopLimitOrder,
+  Session,
+  Side,
+  SignedTpSl,
+  SignInSiweQuery,
+  StopLimitOrderPayload,
+  TpSl,
+  TpSlCancelQuery,
+  TpSlState,
+  TpSlUpdateQuery,
+  TradeEvent,
+  TradingBalanceWithdraw,
+} from "./types";
 import Big from "big.js";
 import { generateShortUuid } from "./utils";
 
@@ -84,7 +115,7 @@ export class Gateway {
 
   private lastMatcherStateTime?: Date;
 
-  protected updateMatcherState(matcherState: evedexApi.MatcherUpdateEvent) {
+  protected updateMatcherState(matcherState: MatcherUpdateEvent) {
     if (
       this.lastMatcherStateTime &&
       this.lastMatcherStateTime >= new Date(matcherState.updatedAt)
@@ -98,7 +129,7 @@ export class Gateway {
 
   private lastOrderBookBestTime = new Map<string, number>();
 
-  protected updateOrderBookBest(orderBook: evedexApi.OrderBookBestUpdateEvent) {
+  protected updateOrderBookBest(orderBook: OrderBookBestUpdateEvent) {
     if ((this.lastOrderBookBestTime.get(orderBook.instrument) ?? 0) >= orderBook.t) {
       return;
     }
@@ -109,7 +140,7 @@ export class Gateway {
 
   private lastOrderBookTime = new Map<string, number>();
 
-  protected updateOrderBook(orderBook: evedexApi.OrderBookUpdateEvent) {
+  protected updateOrderBook(orderBook: OrderBookUpdateEvent) {
     if ((this.lastOrderBookTime.get(orderBook.instrument) ?? 0) >= orderBook.t) {
       return;
     }
@@ -120,7 +151,7 @@ export class Gateway {
 
   private lastTradeDate = new Map<string, Date>();
 
-  protected updateTrade(trade: evedexApi.TradeEvent) {
+  protected updateTrade(trade: TradeEvent) {
     if ((this.lastTradeDate.get(trade.instrument) ?? new Date(0)) >= new Date(trade.createdAt)) {
       return;
     }
@@ -161,7 +192,7 @@ export class Gateway {
     const orderBook = await this.exchangeGateway.getMarketDepth({
       instrument,
       maxLevel: 1,
-      roundPrice: evedexApi.utils.OrderBookRoundPrices.OneTenth,
+      roundPrice: OrderBookRoundPrices.OneTenth,
     });
     this.updateOrderBookBest({
       instrument,
@@ -189,7 +220,7 @@ export class Gateway {
     const orderBook = await this.exchangeGateway.getMarketDepth({
       instrument,
       maxLevel: 30,
-      roundPrice: evedexApi.utils.OrderBookRoundPrices.OneTenth,
+      roundPrice: OrderBookRoundPrices.OneTenth,
     });
     this.updateOrderBook({
       instrument,
@@ -224,7 +255,7 @@ export class Gateway {
     this.httpClient.skipSession();
   }
 
-  async createApiKeyAccount(apiKey: evedexApi.utils.ApiKey) {
+  async createApiKeyAccount(apiKey: ApiKey) {
     this.httpClient.setSession(apiKey);
 
     return new ApiKeyAccount({
@@ -233,7 +264,7 @@ export class Gateway {
     });
   }
 
-  async createSessionAccount(session: evedexApi.Session) {
+  async createSessionAccount(session: Session) {
     this.httpClient.setSession(session.token);
 
     return new SessionAccount({
@@ -262,7 +293,7 @@ export class Gateway {
     }).prepareMessage();
   }
 
-  async signInSessionAccount(siwe: evedexApi.SignInSiweQuery) {
+  async signInSessionAccount(siwe: SignInSiweQuery) {
     const session = await this.authGateway.signInSiwe(siwe);
     return this.createSessionAccount(session);
   }
@@ -358,109 +389,103 @@ export class WalletAccount extends SessionAccount {
   }
 
   // Actions
-  signWithdraw(withdraw: evedexCrypto.TradingBalanceWithdraw) {
+  signWithdraw(withdraw: TradingBalanceWithdraw) {
     return evedexCrypto.signTradingBalanceWithdraw(this.wallet, withdraw);
   }
 
-  async createWithdraw(withdraw: evedexCrypto.TradingBalanceWithdraw) {
+  async createWithdraw(withdraw: TradingBalanceWithdraw) {
     return this.exchangeGateway.withdraw(await this.signWithdraw(withdraw));
   }
 
-  signClosePositionOrder(
-    order: Omit<evedexCrypto.utils.PositionCloseOrder, "id"> & { id?: string },
-  ) {
+  signClosePositionOrder(order: PositionCloseOrderPayload) {
     return evedexCrypto.signPositionCloseOrder(this.wallet, {
       ...order,
       id: order.id ?? generateShortUuid(),
     });
   }
 
-  async createClosePositionOrder(
-    order: Omit<evedexCrypto.utils.PositionCloseOrder, "id"> & { id?: string },
-  ) {
+  async createClosePositionOrder(order: PositionCloseOrderPayload) {
     return this.exchangeGateway.closePosition(await this.signClosePositionOrder(order));
   }
 
-  updatePosition(query: evedexApi.PositionUpdateQuery) {
+  updatePosition(query: PositionUpdateQuery) {
     return this.exchangeGateway.updatePosition(query);
   }
 
-  signLimitOrder(order: Omit<evedexCrypto.utils.LimitOrder, "id"> & { id?: string }) {
+  signLimitOrder(order: LimitOrderPayload) {
     return evedexCrypto.signLimitOrder(this.wallet, {
       ...order,
       id: order.id ?? generateShortUuid(),
     });
   }
 
-  async createLimitOrder(order: Omit<evedexCrypto.utils.LimitOrder, "id"> & { id?: string }) {
+  async createLimitOrder(order: LimitOrderPayload) {
     return this.exchangeGateway.createLimitOrder(await this.signLimitOrder(order));
   }
 
-  signReplaceLimitOrder(order: evedexCrypto.utils.ReplaceLimitOrder) {
+  signReplaceLimitOrder(order: ReplaceLimitOrder) {
     return evedexCrypto.signReplaceLimitOrder(this.wallet, order);
   }
 
-  async replaceLimitOrder(order: evedexCrypto.utils.ReplaceLimitOrder) {
+  async replaceLimitOrder(order: ReplaceLimitOrder) {
     return this.exchangeGateway.replaceLimitOrder(await this.signReplaceLimitOrder(order));
   }
 
-  signMarketOrder(order: Omit<evedexCrypto.utils.MarketOrder, "id"> & { id?: string }) {
+  signMarketOrder(order: MarketOrderPayload) {
     return evedexCrypto.signMarketOrder(this.wallet, {
       ...order,
       id: order.id ?? generateShortUuid(),
     });
   }
 
-  async createMarketOrder(order: Omit<evedexCrypto.utils.MarketOrder, "id"> & { id?: string }) {
+  async createMarketOrder(order: MarketOrderPayload) {
     return this.exchangeGateway.createMarketOrder(await this.signMarketOrder(order));
   }
 
-  signStopLimitOrder(order: Omit<evedexCrypto.utils.StopLimitOrder, "id"> & { id?: string }) {
+  signStopLimitOrder(order: StopLimitOrderPayload) {
     return evedexCrypto.signStopLimitOrder(this.wallet, {
       ...order,
       id: order.id ?? generateShortUuid(),
     });
   }
 
-  async createStopLimitOrder(
-    order: Omit<evedexCrypto.utils.StopLimitOrder, "id"> & { id?: string },
-  ) {
+  async createStopLimitOrder(order: StopLimitOrderPayload) {
     return this.exchangeGateway.createStopLimitOrder(await this.signStopLimitOrder(order));
   }
 
-  signReplaceStopLimitOrder(order: evedexCrypto.utils.ReplaceStopLimitOrder) {
+  signReplaceStopLimitOrder(order: ReplaceStopLimitOrder) {
     return evedexCrypto.signReplaceStopLimitOrder(this.wallet, order);
   }
 
-  async replaceStopLimitOrder(order: evedexCrypto.utils.ReplaceStopLimitOrder) {
+  async replaceStopLimitOrder(order: ReplaceStopLimitOrder) {
     return this.exchangeGateway.replaceStopLimitOrder(await this.signReplaceStopLimitOrder(order));
   }
 
-  cancelOrder(query: evedexApi.OrderCancelQuery) {
+  cancelOrder(query: OrderCancelQuery) {
     return this.exchangeGateway.cancelOrder(query);
   }
 
-  massCancelUserOrders(query: evedexApi.OrderMassCancelQuery) {
+  massCancelUserOrders(query: OrderMassCancelQuery) {
     return this.exchangeGateway.massCancelUserOrders(query);
   }
 
-  massCancelUserOrdersById(query: evedexApi.OrderMassCancelByIdQuery) {
+  massCancelUserOrdersById(query: OrderMassCancelByIdQuery) {
     return this.exchangeGateway.massCancelUserOrdersById(query);
   }
 
-  signCreateTpSl(tpsl: evedexCrypto.utils.TpSl) {
+  signCreateTpSl(tpsl: TpSl) {
     return evedexCrypto.signTpSl(this.wallet, tpsl);
   }
 
-  async createTpSl(tpsl: evedexCrypto.SignedTpSl) {
+  async createTpSl(tpsl: SignedTpSl) {
     return this.exchangeGateway.createTpSl(await this.signCreateTpSl(tpsl));
   }
 
-  updateTpSl(query: evedexApi.TpSlUpdateQuery) {
+  updateTpSl(query: TpSlUpdateQuery) {
     return this.exchangeGateway.updateTpSl(query);
   }
 
-  cancelTpSl(query: evedexApi.TpSlCancelQuery) {
+  cancelTpSl(query: TpSlCancelQuery) {
     return this.exchangeGateway.cancelTpSl(query);
   }
 }
@@ -499,7 +524,7 @@ export class Balance {
 
   constructor(private readonly options: BalanceOptions) {}
 
-  protected updateAccount(account: evedexApi.AccountEvent) {
+  protected updateAccount(account: AccountEvent) {
     if (new Date(this.options.account.exchangeAccount.updatedAt) >= new Date(account.updatedAt)) {
       return;
     }
@@ -511,7 +536,7 @@ export class Balance {
 
   private funding = new Map<string, evedexApi.utils.Funding>();
 
-  protected updateFunding(funding: evedexApi.utils.Funding) {
+  protected updateFunding(funding: Funding) {
     const currentState = this.funding.get(funding.coin);
     if (currentState && new Date(currentState.updatedAt) >= new Date(funding.updatedAt)) {
       return;
@@ -526,9 +551,9 @@ export class Balance {
     this.onFundingUpdate(updated);
   }
 
-  private positions = new Map<string, evedexApi.utils.Position>();
+  private positions = new Map<string, Position>();
 
-  protected updatePosition(position: evedexApi.utils.Position) {
+  protected updatePosition(position: Position) {
     const currentState = this.positions.get(position.instrument);
     if (currentState && new Date(currentState.updatedAt) >= new Date(position.updatedAt)) {
       return;
@@ -538,9 +563,9 @@ export class Balance {
     this.onPositionUpdate(position);
   }
 
-  private orders = new Map<string, evedexApi.utils.Order>();
+  private orders = new Map<string, Order>();
 
-  protected updateOrder(order: evedexApi.utils.Order) {
+  protected updateOrder(order: Order) {
     const currentState = this.orders.get(order.id);
     if (currentState && new Date(currentState.updatedAt) >= new Date(order.updatedAt)) {
       return;
@@ -550,9 +575,9 @@ export class Balance {
     this.onOrderUpdate(order);
   }
 
-  private tpsl = new Map<string, evedexApi.utils.TpSl>();
+  private tpsl = new Map<string, TpSlState>();
 
-  protected updateTpSl(tpsl: evedexApi.utils.TpSl) {
+  protected updateTpSl(tpsl: TpSlState) {
     const currentState = this.tpsl.get(tpsl.id);
     if (currentState && new Date(currentState.updatedAt) >= new Date(tpsl.updatedAt)) {
       return;
@@ -618,13 +643,15 @@ export class Balance {
         const unFilledVolume = evedexCrypto.utils.toMatcherNumber(
           Big(unFilledQuantity).mul(limitPrice),
         );
-        const position = this.positions.get(instrument);
+        const positionData = this.positions.get(instrument);
         return {
           instrument,
           side,
           unFilledVolume: unFilledVolume,
           unFilledInitialMargin: position
-            ? Big(unFilledVolume).div(position.leverage).toString()
+            ? Big(unFilledVolume)
+                .div(positionData?.leverage ?? 1)
+                .toString()
             : "0",
         };
       },
@@ -647,10 +674,7 @@ export class Balance {
       return carry;
     }, new Map<string, { instrument: string; side: evedexCrypto.utils.Side; unFilledVolume: string; unFilledInitialMargin: string }>());
     const lock = position.reduce((carry, { instrument, side, initialMargin }) => {
-      const against =
-        side === evedexCrypto.utils.Side.Buy
-          ? evedexCrypto.utils.Side.Sell
-          : evedexCrypto.utils.Side.Buy;
+      const against = side === Side.Buy ? Side.Sell : Side.Buy;
 
       return carry.plus(
         Math.max(
@@ -696,15 +720,17 @@ export class Balance {
 
     const orderMap = Array.from(
       this.orders.values(),
-      ({ instrument, side, unFilledQuantity, limitPrice }) => {
-        const position = this.positions.get(instrument);
+      ({ instrument: instrumentSymbol, side, unFilledQuantity, limitPrice }) => {
+        const positionData = this.positions.get(instrumentSymbol);
         return {
-          instrument,
+          instrument: instrumentSymbol,
           side,
           unFilledInitialMargin: Big(
             position
               ? evedexCrypto.utils.toMatcherNumber(
-                  Big(unFilledQuantity).mul(limitPrice).div(position.leverage),
+                  Big(unFilledQuantity)
+                    .mul(limitPrice)
+                    .div(positionData?.leverage ?? 1),
                 )
               : 0,
           ),

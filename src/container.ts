@@ -1,5 +1,5 @@
 import { WalletAccount, Gateway } from "./gateway";
-import { Wallet, WalletOptions } from "./utils";
+import { Wallet, WalletOptions, Factory, singleton } from "./utils";
 
 export class WalletNotFoundError extends Error {
   constructor(walletName: string) {
@@ -19,19 +19,20 @@ export interface ContainerConfig {
 export class Container {
   private readonly accountsPool = new Map<string, Promise<WalletAccount>>();
 
-  constructor(public config: ContainerConfig) {}
+  readonly gateway: Factory<Gateway> = singleton(
+    () =>
+      new Gateway({
+        authURI: this.config.authURI,
+        exchangeURI: this.config.exchangeURI,
+        centrifuge: {
+          uri: this.config.centrifugeURI,
+          prefix: this.config.centrifugePrefix,
+          websocket: this.config.centrifugeWebSocket,
+        },
+      }),
+  );
 
-  gateway() {
-    return new Gateway({
-      authURI: this.config.authURI,
-      exchangeURI: this.config.exchangeURI,
-      centrifuge: {
-        uri: this.config.centrifugeURI,
-        prefix: this.config.centrifugePrefix,
-        websocket: this.config.centrifugeWebSocket,
-      },
-    });
-  }
+  constructor(public config: ContainerConfig) {}
 
   wallet(walletName: string) {
     const walletConfig = this.config.wallets[walletName];

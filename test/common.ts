@@ -9,7 +9,7 @@ export interface WaitSignalOptions {
 }
 
 export function waitSignal<T>(signal: evedexApi.utils.Signal<T>, options: WaitSignalOptions = {}) {
-  const timeout = options.timeout ?? 2000;
+  const timeout = options.timeout ?? 5000;
 
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new WaitSignalTimeoutError()), timeout);
@@ -19,3 +19,9 @@ export function waitSignal<T>(signal: evedexApi.utils.Signal<T>, options: WaitSi
     });
   });
 }
+
+export const timeout = (delay: number) => {
+  return new Promise((resolve) => {
+    setTimeout(resolve, delay);
+  });
+};
