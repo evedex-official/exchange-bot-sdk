@@ -1,4 +1,5 @@
 import { WalletAccount, Gateway } from "./gateway";
+import { GatewayParamsMap, Environment, GatewayParams } from "./params";
 import { Wallet, WalletOptions, Factory, singleton } from "./utils";
 
 export class WalletNotFoundError extends Error {
@@ -8,10 +9,7 @@ export class WalletNotFoundError extends Error {
 }
 
 export interface ContainerConfig {
-  exchangeURI: string;
-  authURI: string;
-  centrifugeURI: string;
-  centrifugePrefix: string;
+  environment: Environment;
   centrifugeWebSocket?: any;
   wallets: Record<string, WalletOptions>;
 }
@@ -22,17 +20,23 @@ export class Container {
   readonly gateway: Factory<Gateway> = singleton(
     () =>
       new Gateway({
-        authURI: this.config.authURI,
-        exchangeURI: this.config.exchangeURI,
+        authURI: this.gatewayParams.authURI,
+        exchangeURI: this.gatewayParams.exchangeURI,
         centrifuge: {
-          uri: this.config.centrifugeURI,
-          prefix: this.config.centrifugePrefix,
+          uri: this.gatewayParams.centrifugeURI,
+          prefix: this.gatewayParams.centrifugePrefix,
           websocket: this.config.centrifugeWebSocket,
         },
       }),
   );
 
-  constructor(public config: ContainerConfig) {}
+  private readonly gatewayParams: GatewayParams;
+
+  constructor(public config: ContainerConfig) {
+    this.gatewayParams =
+      GatewayParamsMap.get(config.environment) ??
+      (GatewayParamsMap.get(Environment.DEV) as GatewayParams);
+  }
 
   wallet(walletName: string) {
     const walletConfig = this.config.wallets[walletName];
@@ -49,5 +53,25 @@ export class Container {
     }
 
     return account;
+  }
+}
+
+type ClientConfig = Pick<ContainerConfig, "centrifugeWebSocket" | "wallets">;
+
+export class ProdContainer extends Container {
+  constructor(config: ClientConfig) {
+    super({ ...config, environment: Environment.PROD });
+  }
+}
+
+export class DemoContainer extends Container {
+  constructor(config: ClientConfig) {
+    super({ ...config, environment: Environment.DEMO });
+  }
+}
+
+export class DevContainer extends Container {
+  constructor(config: ClientConfig) {
+    super({ ...config, environment: Environment.DEV });
   }
 }

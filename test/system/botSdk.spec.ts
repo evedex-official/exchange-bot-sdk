@@ -4,13 +4,8 @@ import { assert } from "chai";
 import { MatcherUpdateEvent } from "../../src";
 
 describe("Bot sdk test", () => {
-  const sdk = new src.Container({
-    exchangeURI: config.exchangeURI,
-    authURI: config.authURI,
-    centrifugeURI: config.centrifugoURI,
-    centrifugePrefix: config.centrifugoPrefix,
+  const sdk = new src.DevContainer({
     centrifugeWebSocket: WebSocket,
-
     wallets: {
       baseAccount: {
         privateKey: config.privateKey,
