@@ -1,6 +1,6 @@
 import { WalletAccount, Gateway } from "./gateway";
 import { GatewayParamsMap, Environment, GatewayParams } from "./params";
-import { Wallet, WalletOptions, Factory, singleton } from "./utils";
+import { Wallet, Factory, singleton } from "./utils";
 
 export class WalletNotFoundError extends Error {
   constructor(walletName: string) {
@@ -11,7 +11,7 @@ export class WalletNotFoundError extends Error {
 export interface ContainerConfig {
   environment: Environment;
   centrifugeWebSocket?: any;
-  wallets: Record<string, WalletOptions>;
+  wallets: Record<string, string>;
 }
 
 export class Container {
@@ -39,10 +39,10 @@ export class Container {
   }
 
   wallet(walletName: string) {
-    const walletConfig = this.config.wallets[walletName];
-    if (!walletConfig) throw new WalletNotFoundError(walletName);
+    const walletPrivateKey = this.config.wallets[walletName];
+    if (!walletPrivateKey) throw new WalletNotFoundError(walletName);
 
-    return new Wallet(walletConfig);
+    return new Wallet({ privateKey: walletPrivateKey, chain: this.gatewayParams.chainId });
   }
 
   account(walletName: string) {
