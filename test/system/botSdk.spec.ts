@@ -29,6 +29,26 @@ describe("Bot sdk test", () => {
     });
   });
 
+  context("Test instruments funding rate listener", () => {
+    it("Should get instrument list with metrics", async () => {
+      const instruments = await sdk.gateway().getInstruments();
+      assert.isArray(instruments);
+      assert.isNotEmpty(instruments);
+    });
+
+    it("Should listen to funding rate updates", async () => {
+      sdk.gateway().onFundingRateUpdate((fundingRate) => {
+        assert.isString(fundingRate.instrument);
+        assert.isNumber(new Date(fundingRate.createdAt).getTime());
+        assert.isNumber(Number(fundingRate.fundingRate));
+      });
+
+      sdk.gateway().listenFundingRateState();
+
+      await timeout(2000);
+    });
+  });
+
   context("Test wallet", () => {
     it("Should return wallet address", async () => {
       assert.equal(
