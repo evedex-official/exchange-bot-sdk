@@ -7,10 +7,7 @@ describe("Bot sdk test", () => {
   const sdk = new src.DevContainer({
     centrifugeWebSocket: WebSocket,
     wallets: {
-      baseAccount: {
-        privateKey: config.privateKey,
-        chain: "16182",
-      },
+      baseAccount: config.privateKey,
     },
   });
 
@@ -29,6 +26,15 @@ describe("Bot sdk test", () => {
       await timeout(2000);
 
       assert.isNotNull(matcherStateData);
+    });
+  });
+
+  context("Test wallet", () => {
+    it("Should return wallet address", async () => {
+      assert.equal(
+        await sdk.wallet("baseAccount").getAddress(),
+        "0xAB750c44e08053Ac7E711b64860D65F75bAbE36B",
+      );
     });
   });
 });

@@ -3,6 +3,7 @@ export interface GatewayParams {
   authURI: string;
   centrifugeURI: string;
   centrifugePrefix: string;
+  chainId: string;
 }
 
 export enum Environment {
@@ -19,6 +20,7 @@ export const GatewayParamsMap = new Map<Environment, GatewayParams>([
       authURI: "https://auth.evedex.tech",
       centrifugeURI: "wss://ws.evedex.tech/connection/websocket",
       centrifugePrefix: "futures-perp-dev",
+      chainId: "16182",
     },
   ],
   [
@@ -28,6 +30,7 @@ export const GatewayParamsMap = new Map<Environment, GatewayParams>([
       authURI: "https://auth.evedex.com",
       centrifugeURI: "wss://ws.evedex.com/connection/websocket",
       centrifugePrefix: "futures-perp-demo",
+      chainId: "16182",
     },
   ],
   [
@@ -37,6 +40,7 @@ export const GatewayParamsMap = new Map<Environment, GatewayParams>([
       authURI: "https://auth.evedex.com",
       centrifugeURI: "wss://stream.evedex.com/connection/websocket",
       centrifugePrefix: "futures-perp",
+      chainId: "161803",
     },
   ],
 ]);
