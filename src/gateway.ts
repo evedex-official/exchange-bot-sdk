@@ -174,15 +174,8 @@ export class Gateway {
     this.onTrade(trade);
   }
 
-  public instruments = new Map<string, evedexApi.utils.InstrumentMetrics>();
-
-  async getInstrumentsMetricsMap() {
-    this.instruments = new Map(
-      (await this.exchangeGateway.getInstrumentsMetrics()).map((instrumentData) => [
-        instrumentData.name,
-        instrumentData,
-      ]),
-    );
+  async getInstruments() {
+    return this.exchangeGateway.getInstrumentsMetrics();
   }
 
   // Signals
@@ -196,9 +189,9 @@ export class Gateway {
 
     this.wsGateway.listenFundingRate();
 
-    await this.getInstrumentsMetricsMap();
+    const instruments = await this.getInstruments();
 
-    this.instruments.forEach((instrument) => {
+    instruments.forEach((instrument) => {
       this.updateFundingRateState({
         instrument: instrument.name,
         createdAt: instrument.fundingRateCreatedAt.getTime(),
