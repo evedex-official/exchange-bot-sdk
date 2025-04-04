@@ -8,9 +8,15 @@ import { SiweMessage } from "siwe";
 import {
   AccountEvent,
   ApiKey,
+  CoinList,
   CollateralCurrency,
   Funding,
+  InstrumentList,
+  InstrumentMetricsList,
   LimitOrderPayload,
+  MarketDepth,
+  MarketDepthQuery,
+  MarketInfo,
   MarketOrderPayload,
   MatcherUpdateEvent,
   Order,
@@ -18,10 +24,13 @@ import {
   OrderBookRoundPrices,
   OrderBookUpdateEvent,
   OrderCancelQuery,
+  OrderList,
+  OrderListQuery,
   OrderMassCancelByIdQuery,
   OrderMassCancelQuery,
   Position,
   PositionCloseOrderPayload,
+  PositionList,
   PositionUpdateQuery,
   ReplaceLimitOrder,
   ReplaceStopLimitOrder,
@@ -34,8 +43,11 @@ import {
   TpSlCancelQuery,
   TpSlState,
   TpSlUpdateQuery,
+  Trade,
   TradeEvent,
+  TradesQuery,
   TradingBalanceWithdraw,
+  User,
 } from "./types";
 import Big from "big.js";
 import { generateShortUuid } from "./utils";
@@ -174,10 +186,6 @@ export class Gateway {
     this.onTrade(trade);
   }
 
-  async getInstruments() {
-    return this.exchangeGateway.getInstrumentsMetrics();
-  }
-
   // Signals
 
   private lastInstrumentFundingRateTime = new Map<string, number>();
@@ -189,7 +197,7 @@ export class Gateway {
 
     this.wsGateway.listenFundingRate();
 
-    const instruments = await this.getInstruments();
+    const instruments = await this.fetchInstrumentsWithMetrics();
 
     instruments.forEach((instrument) => {
       this.updateFundingRateState({
@@ -368,6 +376,63 @@ export class Gateway {
       exchangeAccount: await this.exchangeGateway.me(),
     });
   }
+
+  /**
+   * Fetches a list of available trading instruments without metrics
+   * @returns {Promise<InstrumentList>}
+   */
+  async fetchInstruments(): Promise<InstrumentList> {
+    return this.exchangeGateway.getInstruments();
+  }
+
+  /**
+   * Fetches a list of available trading instruments along with their metrics.
+   *
+   * @returns {Promise<InstrumentMetricsList>}
+   */
+
+  async fetchInstrumentsWithMetrics(): Promise<InstrumentMetricsList> {
+    return this.exchangeGateway.getInstrumentsMetrics();
+  }
+
+  /**
+   * Fetches a list of available coins with last prices.
+   *
+   * @returns {Promise<CoinList>} List of coins.
+   */
+  async fetchCoins(): Promise<CoinList> {
+    return this.exchangeGateway.getCoins();
+  }
+
+  /**
+   * Fetches a list of trades based on the provided instrument.
+   *
+   * @param {TradesQuery} tradesQuery - The query parameters for fetching trades.
+   * @returns {Promise<Trade[]>} A promise that resolves to an array of trades.
+   */
+
+  async fetchTrades(tradesQuery: TradesQuery): Promise<Trade[]> {
+    return this.exchangeGateway.getTrades(tradesQuery);
+  }
+
+  /**
+   * Fetches the current state of the matcher and fees info.
+   *
+   * @returns {Promise<MarketInfo>}
+   */
+  async fetchMarketInfo(): Promise<MarketInfo> {
+    return this.exchangeGateway.getMarketInfo();
+  }
+
+  /**
+   * Fetches the current state of the order book for the given instrument.
+   *
+   * @param {MarketDepthQuery} marketDepthQuery
+   * @returns {Promise<MarketDepth>} A promise that resolves to the current order book state.
+   */
+  async fetchMarketDepth(marketDepthQuery: MarketDepthQuery): Promise<MarketDepth> {
+    return this.exchangeGateway.getMarketDepth(marketDepthQuery);
+  }
 }
 
 export interface ApiKeyAccountOptions {
@@ -434,7 +499,7 @@ export class WalletAccount extends SessionAccount {
   }
 
   // Actions
-  signWithdraw(withdraw: TradingBalanceWithdraw) {
+  private signWithdraw(withdraw: TradingBalanceWithdraw) {
     return evedexCrypto.signTradingBalanceWithdraw(this.wallet, withdraw);
   }
 
@@ -442,7 +507,7 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.withdraw(await this.signWithdraw(withdraw));
   }
 
-  signClosePositionOrder(order: PositionCloseOrderPayload) {
+  private signClosePositionOrder(order: PositionCloseOrderPayload) {
     return evedexCrypto.signPositionCloseOrder(this.wallet, {
       ...order,
       id: order.id ?? generateShortUuid(),
@@ -457,7 +522,7 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.updatePosition(query);
   }
 
-  signLimitOrder(order: LimitOrderPayload) {
+  private signLimitOrder(order: LimitOrderPayload) {
     return evedexCrypto.signLimitOrder(this.wallet, {
       ...order,
       id: order.id ?? generateShortUuid(),
@@ -468,7 +533,7 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.createLimitOrder(await this.signLimitOrder(order));
   }
 
-  signReplaceLimitOrder(order: ReplaceLimitOrder) {
+  private signReplaceLimitOrder(order: ReplaceLimitOrder) {
     return evedexCrypto.signReplaceLimitOrder(this.wallet, order);
   }
 
@@ -476,7 +541,7 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.replaceLimitOrder(await this.signReplaceLimitOrder(order));
   }
 
-  signMarketOrder(order: MarketOrderPayload) {
+  private signMarketOrder(order: MarketOrderPayload) {
     return evedexCrypto.signMarketOrder(this.wallet, {
       ...order,
       id: order.id ?? generateShortUuid(),
@@ -487,7 +552,7 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.createMarketOrder(await this.signMarketOrder(order));
   }
 
-  signStopLimitOrder(order: StopLimitOrderPayload) {
+  private signStopLimitOrder(order: StopLimitOrderPayload) {
     return evedexCrypto.signStopLimitOrder(this.wallet, {
       ...order,
       id: order.id ?? generateShortUuid(),
@@ -498,7 +563,7 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.createStopLimitOrder(await this.signStopLimitOrder(order));
   }
 
-  signReplaceStopLimitOrder(order: ReplaceStopLimitOrder) {
+  private signReplaceStopLimitOrder(order: ReplaceStopLimitOrder) {
     return evedexCrypto.signReplaceStopLimitOrder(this.wallet, order);
   }
 
@@ -518,7 +583,7 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.massCancelUserOrdersById(query);
   }
 
-  signCreateTpSl(tpsl: TpSl) {
+  private signCreateTpSl(tpsl: TpSl) {
     return evedexCrypto.signTpSl(this.wallet, tpsl);
   }
 
@@ -532,6 +597,33 @@ export class WalletAccount extends SessionAccount {
 
   cancelTpSl(query: TpSlCancelQuery) {
     return this.exchangeGateway.cancelTpSl(query);
+  }
+
+  /**
+   * Fetches current user information.
+   * @returns {Promise<User>}
+   */
+  fetchMe(): Promise<User> {
+    return this.exchangeGateway.me();
+  }
+
+  /**
+   * Fetches a list of current user positions.
+   * @returns {Promise<PositionList>}
+   */
+  fetchPositions(): Promise<PositionList> {
+    return this.exchangeGateway.getPositions();
+  }
+
+  /**
+   * Fetches a list of user orders based on the provided query parameters.
+   *
+   * @param {OrderListQuery} orderListQuery - The query parameters for fetching orders.
+   * @returns {Promise<OrderList>} A promise that resolves to a list of orders.
+   */
+
+  fetchOrders(orderListQuery: OrderListQuery): Promise<OrderList> {
+    return this.exchangeGateway.getOrders(orderListQuery);
   }
 }
 
