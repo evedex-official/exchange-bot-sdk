@@ -7,7 +7,9 @@ describe("Bot sdk test", () => {
   const sdk = new src.DevContainer({
     centrifugeWebSocket: WebSocket,
     wallets: {
-      baseAccount: config.privateKey,
+      baseAccount: {
+        privateKey: config.privateKey,
+      },
     },
   });
 
