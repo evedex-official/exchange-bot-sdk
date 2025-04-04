@@ -1,3 +1,5 @@
+import Big from "big.js";
+
 export * from "./wallet";
 export * from "./rest";
 export * from "./ws";
@@ -12,4 +14,8 @@ export function singleton<T>(f: Factory<T>): Factory<T> {
     if (instance === undefined) instance = f();
     return instance;
   };
+}
+
+export function toBig(value: string | number): Big {
+  return Big(value);
 }

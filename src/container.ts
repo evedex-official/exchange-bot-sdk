@@ -8,10 +8,14 @@ export class WalletNotFoundError extends Error {
   }
 }
 
+export interface WalletConfig {
+  privateKey: string;
+}
+
 export interface ContainerConfig {
   environment: Environment;
   centrifugeWebSocket?: any;
-  wallets: Record<string, string>;
+  wallets: Record<string, WalletConfig>;
 }
 
 export class Container {
@@ -39,7 +43,7 @@ export class Container {
   }
 
   wallet(walletName: string) {
-    const walletPrivateKey = this.config.wallets[walletName];
+    const { privateKey: walletPrivateKey } = this.config.wallets[walletName];
     if (!walletPrivateKey) throw new WalletNotFoundError(walletName);
 
     return new Wallet({ privateKey: walletPrivateKey, chain: this.gatewayParams.chainId });
