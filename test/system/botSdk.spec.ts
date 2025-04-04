@@ -1,7 +1,7 @@
 import { config, src, timeout } from "../common";
 import WebSocket from "ws";
 import { assert } from "chai";
-import { MatcherUpdateEvent } from "../../src";
+import { InstrumentMetrics, MatcherUpdateEvent, Side } from "../../src";
 
 describe("Bot sdk test", () => {
   const sdk = new src.DevContainer({
@@ -10,6 +10,8 @@ describe("Bot sdk test", () => {
       baseAccount: config.privateKey,
     },
   });
+
+  let instrumentSettings: InstrumentMetrics | null = null;
 
   context("Test matcher state listener", () => {
     it("Should subscribe on matcher state changes with gateway singleton", async () => {
@@ -23,7 +25,7 @@ describe("Bot sdk test", () => {
 
       sdk.gateway().listenMatcherState();
 
-      await timeout(2000);
+      await timeout(3000);
 
       assert.isNotNull(matcherStateData);
     });
@@ -31,9 +33,13 @@ describe("Bot sdk test", () => {
 
   context("Test instruments funding rate listener", () => {
     it("Should get instrument list with metrics", async () => {
-      const instruments = await sdk.gateway().getInstruments();
+      const instruments = await sdk.gateway().fetchInstruments();
       assert.isArray(instruments);
       assert.isNotEmpty(instruments);
+
+      instrumentSettings = instruments.find(
+        (instrument) => instrument.name === "DBTCUSDT",
+      ) as InstrumentMetrics;
     });
 
     it("Should listen to funding rate updates", async () => {
@@ -55,6 +61,38 @@ describe("Bot sdk test", () => {
         await sdk.wallet("baseAccount").getAddress(),
         "0xAB750c44e08053Ac7E711b64860D65F75bAbE36B",
       );
+    });
+  });
+
+  context("Test create order", () => {
+    it("Should return validating error", async () => {
+      const account = await sdk.account("baseAccount");
+      try {
+        await account.createLimitOrder({
+          instrument: "BTCUSDT",
+          limitPrice: 10000,
+          quantity: -1,
+          side: Side.Buy,
+          leverage: 1,
+        });
+      } catch (error: any) {
+        assert.equal(error.message, 'Field "quantity" incorrect uint type');
+      }
+    });
+
+    it("Should return invalid price error", async () => {
+      const account = await sdk.account("baseAccount");
+      try {
+        await account.createLimitOrder({
+          instrument: "DBTCUSDT",
+          limitPrice: 1000000,
+          quantity: 0.001,
+          side: Side.Buy,
+          leverage: 1,
+        });
+      } catch (error: any) {
+        assert.equal(error.message, "Invalid price");
+      }
     });
   });
 });

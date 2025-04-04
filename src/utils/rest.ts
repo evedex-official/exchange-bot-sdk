@@ -57,7 +57,7 @@ export class RestClient implements evedexApi.utils.HttpClient {
       };
     } catch (e) {
       if (axios.isAxiosError(e) && e.response) {
-        throw new evedexApi.utils.RequestError(e.response.statusText, {
+        throw new evedexApi.utils.RequestError(e.response.data?.error ?? e.response.statusText, {
           status: e.response.status,
           statusText: e.response.statusText,
           data: e.response.data,
