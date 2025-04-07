@@ -8,7 +8,8 @@ import { SiweMessage } from "siwe";
 import {
   AccountEvent,
   ApiKey,
-  CoinList,
+  AvailableBalanceData,
+  Coin,
   CollateralCurrency,
   Funding,
   InstrumentList,
@@ -36,7 +37,6 @@ import {
   ReplaceStopLimitOrder,
   Session,
   Side,
-  SignedTpSl,
   SignInSiweQuery,
   StopLimitOrderPayload,
   TpSl,
@@ -44,7 +44,6 @@ import {
   TpSlList,
   TpSlListQuery,
   TpSlState,
-  TpSlUpdateEvent,
   TpSlUpdateQuery,
   Trade,
   TradeEvent,
@@ -330,12 +329,12 @@ export class Gateway {
     });
   }
 
-  async getNonce() {
+  private async getNonce() {
     const { nonce } = await this.authGateway.getNonce();
     return nonce;
   }
 
-  getSiweMessage(nonce: string, address: string, chainId: string, expirationTime?: string) {
+  private getSiweMessage(nonce: string, address: string, chainId: string, expirationTime?: string) {
     return new SiweMessage({
       scheme: "https",
       domain: "evedex.com",
@@ -403,8 +402,8 @@ export class Gateway {
    *
    * @returns {Promise<CoinList>} List of coins.
    */
-  async fetchCoins(): Promise<CoinList> {
-    return this.exchangeGateway.getCoins();
+  async fetchCoins(): Promise<Coin[]> {
+    return this.exchangeGateway.getCoins().then(({ list }) => list);
   }
 
   /**
@@ -602,7 +601,14 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.cancelTpSl(query);
   }
 
-  fetchTpSlList(query: TpSlListQuery) {
+  /**
+   * Fetches a list of Take Profit and Stop Loss (TpSl)
+   *
+   * @param {TpSlListQuery} query - The query parameters to filter the TpSl orders.
+   * @returns {Promise<TpSlList>} - A promise that resolves to a list of TpSl orders.
+   */
+
+  fetchTpSlList(query: TpSlListQuery): Promise<TpSlList> {
     return this.exchangeGateway.getTpSl(query);
   }
 
@@ -632,6 +638,15 @@ export class WalletAccount extends SessionAccount {
   fetchOrders(orderListQuery: OrderListQuery): Promise<OrderList> {
     return this.exchangeGateway.getOrders(orderListQuery);
   }
+
+  /**
+   * Fetches the available balance for the current user.
+   *
+   * @returns {Promise<AvailableBalanceData>} A promise that resolves to the available balance data.
+   */
+  fetchAvailableBalance(): Promise<AvailableBalanceData> {
+    return this.exchangeGateway.getAvailableBalance();
+  }
 }
 
 export type AvailableBalance = {
@@ -639,8 +654,8 @@ export type AvailableBalance = {
     currency: string;
     balance: string;
   };
-  position: evedexApi.utils.AvailableBalance["position"];
-  openOrder: evedexApi.utils.AvailableBalance["openOrder"];
+  positions: evedexApi.utils.AvailableBalance["position"];
+  openOrders: evedexApi.utils.AvailableBalance["openOrder"];
   availableBalance: string;
 };
 
@@ -769,7 +784,7 @@ export class Balance {
       currency: CollateralCurrency.USDT,
       balance: this.getFundingQuantity(CollateralCurrency.USDT),
     };
-    const position = Array.from(
+    const positions = Array.from(
       this.positions.values(),
       ({ instrument, side, quantity, avgPrice, leverage }) => {
         const volume = Big(quantity).mul(avgPrice);
@@ -792,7 +807,7 @@ export class Balance {
           instrument,
           side,
           unFilledVolume: unFilledVolume,
-          unFilledInitialMargin: position
+          unFilledInitialMargin: positions
             ? Big(unFilledVolume)
                 .div(positionData?.leverage ?? 1)
                 .toString()
@@ -817,7 +832,7 @@ export class Balance {
 
       return carry;
     }, new Map<string, { instrument: string; side: evedexCrypto.utils.Side; unFilledVolume: string; unFilledInitialMargin: string }>());
-    const lock = position.reduce((carry, { instrument, side, initialMargin }) => {
+    const lock = positions.reduce((carry, { instrument, side, initialMargin }) => {
       const against = side === Side.Buy ? Side.Sell : Side.Buy;
 
       return carry.plus(
@@ -835,8 +850,8 @@ export class Balance {
         currency: funding.currency,
         balance: funding.balance.toString(),
       },
-      position,
-      openOrder: Array.from(openOrderMap.values()),
+      positions,
+      openOrders: Array.from(openOrderMap.values()),
       availableBalance: Big(funding.balance).minus(lock).toString(),
     };
   }
