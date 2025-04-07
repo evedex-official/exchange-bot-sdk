@@ -16,6 +16,7 @@ export type ReplaceLimitOrder = exchangeCrypto.utils.ReplaceLimitOrder;
 export type ReplaceStopLimitOrder = exchangeCrypto.utils.ReplaceStopLimitOrder;
 export type TpSl = exchangeCrypto.utils.TpSl;
 export type OrderTpSl = exchangeCrypto.utils.OrderTpSl;
+export const OrderStatus = evedexApi.utils.OrderStatus;
 export type SignedTpSl = exchangeCrypto.SignedTpSl;
 export type TradingBalanceWithdraw = exchangeCrypto.TradingBalanceWithdraw;
 
@@ -47,6 +48,7 @@ export type InstrumentMetricsList = evedexApi.utils.InstrumentMetricsList;
 export type InstrumentMetrics = evedexApi.utils.InstrumentMetrics;
 export type InstrumentList = evedexApi.utils.InstrumentList;
 export type CoinList = evedexApi.utils.CoinList;
+export type Coin = evedexApi.utils.Coin;
 export type TradesQuery = evedexApi.TradesQuery;
 export type Trade = evedexApi.utils.Trade;
 export type MarketInfo = evedexApi.utils.MarketInfo;
@@ -60,7 +62,7 @@ export type TpSlListQuery = evedexApi.TpSlListQuery;
 export type TpSlList = evedexApi.utils.TpSlList;
 export type TpSlUpdateEvent = evedexApi.utils.TpSl;
 export type Signal<T> = evedexApi.utils.Signal<T>;
-
+export type AvailableBalanceData = evedexApi.utils.AvailableBalance;
 export type OrderPayload<T extends { id: string }> = Omit<T, "id"> & { id?: string };
 
 export type PositionCloseOrderPayload = OrderPayload<PositionCloseOrder>;
