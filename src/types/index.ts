@@ -56,6 +56,9 @@ export type User = evedexApi.utils.User;
 export type PositionList = evedexApi.utils.PositionList;
 export type OrderListQuery = evedexApi.OrderListQuery;
 export type OrderList = evedexApi.utils.OrderList;
+export type TpSlListQuery = evedexApi.TpSlListQuery;
+export type TpSlList = evedexApi.utils.TpSlList;
+export type TpSlUpdateEvent = evedexApi.utils.TpSl;
 export type Signal<T> = evedexApi.utils.Signal<T>;
 
 export type OrderPayload<T extends { id: string }> = Omit<T, "id"> & { id?: string };
