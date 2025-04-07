@@ -41,7 +41,10 @@ import {
   StopLimitOrderPayload,
   TpSl,
   TpSlCancelQuery,
+  TpSlList,
+  TpSlListQuery,
   TpSlState,
+  TpSlUpdateEvent,
   TpSlUpdateQuery,
   Trade,
   TradeEvent,
@@ -587,7 +590,7 @@ export class WalletAccount extends SessionAccount {
     return evedexCrypto.signTpSl(this.wallet, tpsl);
   }
 
-  async createTpSl(tpsl: SignedTpSl) {
+  async createTpSl(tpsl: TpSl) {
     return this.exchangeGateway.createTpSl(await this.signCreateTpSl(tpsl));
   }
 
@@ -597,6 +600,10 @@ export class WalletAccount extends SessionAccount {
 
   cancelTpSl(query: TpSlCancelQuery) {
     return this.exchangeGateway.cancelTpSl(query);
+  }
+
+  fetchTpSlList(query: TpSlListQuery) {
+    return this.exchangeGateway.getTpSl(query);
   }
 
   /**
