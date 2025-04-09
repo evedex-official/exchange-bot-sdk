@@ -8,7 +8,6 @@ import { SiweMessage } from "siwe";
 import {
   AccountEvent,
   ApiKey,
-  AvailableBalanceData,
   Coin,
   CollateralCurrency,
   Funding,
@@ -70,6 +69,8 @@ export interface GatewayOptions {
         websocket?: any;
       };
 }
+
+/** Class gateway . */
 
 export class Gateway {
   private readonly httpClient: RestClient;
@@ -433,7 +434,13 @@ export class Gateway {
    * @returns {Promise<MarketDepth>} A promise that resolves to the current order book state.
    */
   async fetchMarketDepth(marketDepthQuery: MarketDepthQuery): Promise<MarketDepth> {
-    return this.exchangeGateway.getMarketDepth(marketDepthQuery);
+    const defaultMarketDepthQuery: Pick<evedexApi.MarketDepthQuery, "roundPrice"> = {
+      roundPrice: OrderBookRoundPrices.OneTenth,
+    };
+
+    const query = { ...defaultMarketDepthQuery, ...marketDepthQuery } as evedexApi.MarketDepthQuery;
+
+    return this.exchangeGateway.getMarketDepth(query);
   }
 }
 
@@ -472,6 +479,68 @@ export class ApiKeyAccount {
 
   getBalance() {
     return new Balance({ account: this });
+  }
+
+  /**
+   * Fetches a list of Take Profit and Stop Loss (TpSl)
+   *
+   * @param {TpSlListQuery} query - The query parameters to filter the TpSl orders.
+   * @returns {Promise<TpSlList>} - A promise that resolves to a list of TpSl orders.
+   */
+
+  fetchTpSlList(query: TpSlListQuery): Promise<TpSlList> {
+    return this.exchangeGateway.getTpSl(query);
+  }
+
+  /**
+   * Fetches current user information.
+   * @returns {Promise<User>}
+   */
+  fetchMe(): Promise<User> {
+    return this.exchangeGateway.me();
+  }
+
+  /**
+   * Fetches a list of current user positions.
+   * @returns {Promise<PositionList>}
+   */
+  fetchPositions(): Promise<PositionList> {
+    return this.exchangeGateway.getPositions();
+  }
+
+  /**
+   * Fetches a list of user orders based on the provided query parameters.
+   *
+   * @param {OrderListQuery} orderListQuery - The query parameters for fetching orders.
+   * @returns {Promise<OrderList>} A promise that resolves to a list of orders.
+   */
+
+  fetchOrders(orderListQuery: OrderListQuery): Promise<OrderList> {
+    return this.exchangeGateway.getOrders(orderListQuery);
+  }
+
+  /**
+   * Fetches the available balance for the current user.
+   *
+   * @returns {Promise<AvailableBalance>} A promise that resolves to the available balance data.
+   */
+  async fetchAvailableBalance(): Promise<AvailableBalance> {
+    const {
+      funding: { currency, balance },
+      position: positions,
+      openOrder: openOrders,
+      availableBalance,
+    } = await this.exchangeGateway.getAvailableBalance();
+
+    return {
+      funding: {
+        currency,
+        balance: String(balance),
+      },
+      positions,
+      openOrders,
+      availableBalance: String(availableBalance),
+    };
   }
 }
 
@@ -599,53 +668,6 @@ export class WalletAccount extends SessionAccount {
 
   cancelTpSl(query: TpSlCancelQuery) {
     return this.exchangeGateway.cancelTpSl(query);
-  }
-
-  /**
-   * Fetches a list of Take Profit and Stop Loss (TpSl)
-   *
-   * @param {TpSlListQuery} query - The query parameters to filter the TpSl orders.
-   * @returns {Promise<TpSlList>} - A promise that resolves to a list of TpSl orders.
-   */
-
-  fetchTpSlList(query: TpSlListQuery): Promise<TpSlList> {
-    return this.exchangeGateway.getTpSl(query);
-  }
-
-  /**
-   * Fetches current user information.
-   * @returns {Promise<User>}
-   */
-  fetchMe(): Promise<User> {
-    return this.exchangeGateway.me();
-  }
-
-  /**
-   * Fetches a list of current user positions.
-   * @returns {Promise<PositionList>}
-   */
-  fetchPositions(): Promise<PositionList> {
-    return this.exchangeGateway.getPositions();
-  }
-
-  /**
-   * Fetches a list of user orders based on the provided query parameters.
-   *
-   * @param {OrderListQuery} orderListQuery - The query parameters for fetching orders.
-   * @returns {Promise<OrderList>} A promise that resolves to a list of orders.
-   */
-
-  fetchOrders(orderListQuery: OrderListQuery): Promise<OrderList> {
-    return this.exchangeGateway.getOrders(orderListQuery);
-  }
-
-  /**
-   * Fetches the available balance for the current user.
-   *
-   * @returns {Promise<AvailableBalanceData>} A promise that resolves to the available balance data.
-   */
-  fetchAvailableBalance(): Promise<AvailableBalanceData> {
-    return this.exchangeGateway.getAvailableBalance();
   }
 }
 
@@ -851,7 +873,9 @@ export class Balance {
         balance: funding.balance.toString(),
       },
       positions,
-      openOrders: Array.from(openOrderMap.values()),
+      openOrders: Array.from(openOrderMap.values()).filter(
+        ({ unFilledVolume }) => Number(unFilledVolume) > 0,
+      ),
       availableBalance: Big(funding.balance).minus(lock).toString(),
     };
   }
