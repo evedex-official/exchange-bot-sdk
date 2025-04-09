@@ -28,6 +28,7 @@ import {
   OrderListQuery,
   OrderMassCancelByIdQuery,
   OrderMassCancelQuery,
+  OrderStatus,
   Position,
   PositionCloseOrderPayload,
   PositionList,
@@ -820,13 +821,14 @@ export class Balance {
     );
     const openOrderMap = Array.from(
       this.orders.values(),
-      ({ instrument, side, unFilledQuantity, limitPrice }) => {
+      ({ instrument, side, unFilledQuantity, limitPrice, status }) => {
         const unFilledVolume = evedexCrypto.utils.toMatcherNumber(
           Big(unFilledQuantity).mul(limitPrice),
         );
         const positionData = this.positions.get(instrument);
         return {
           instrument,
+          status,
           side,
           unFilledVolume: unFilledVolume,
           unFilledInitialMargin: positions
@@ -836,21 +838,23 @@ export class Balance {
             : "0",
         };
       },
-    ).reduce((carry, { instrument, side, unFilledVolume, unFilledInitialMargin }) => {
-      const id = `${instrument}:${side}`;
-      const order = carry.get(id) ?? {
-        instrument,
-        side,
-        unFilledVolume: "0",
-        unFilledInitialMargin: "0",
-      };
-      order.unFilledVolume = evedexCrypto.utils.toMatcherNumber(
-        Big(order.unFilledVolume).plus(unFilledVolume),
-      );
-      order.unFilledInitialMargin = evedexCrypto.utils.toMatcherNumber(
-        Big(order.unFilledInitialMargin).plus(unFilledInitialMargin),
-      );
-      carry.set(id, order);
+    ).reduce((carry, { instrument, side, unFilledVolume, unFilledInitialMargin, status }) => {
+      if ([OrderStatus.New, OrderStatus.PartiallyFilled].includes(status)) {
+        const id = `${instrument}:${side}`;
+        const order = carry.get(id) ?? {
+          instrument,
+          side,
+          unFilledVolume: "0",
+          unFilledInitialMargin: "0",
+        };
+        order.unFilledVolume = evedexCrypto.utils.toMatcherNumber(
+          Big(order.unFilledVolume).plus(unFilledVolume),
+        );
+        order.unFilledInitialMargin = evedexCrypto.utils.toMatcherNumber(
+          Big(order.unFilledInitialMargin).plus(unFilledInitialMargin),
+        );
+        carry.set(id, order);
+      }
 
       return carry;
     }, new Map<string, { instrument: string; side: evedexCrypto.utils.Side; unFilledVolume: string; unFilledInitialMargin: string }>());
