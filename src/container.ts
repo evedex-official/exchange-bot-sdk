@@ -1,10 +1,17 @@
-import { WalletAccount, Gateway } from "./gateway";
+import { ApiKeyAccount, WalletAccount, Gateway } from "./gateway";
 import { GatewayParamsMap, Environment, GatewayParams } from "./params";
+import type { ApiKey } from "./types";
 import { Wallet, Factory, singleton } from "./utils";
 
 export class WalletNotFoundError extends Error {
   constructor(walletName: string) {
     super(`Wallet "${walletName}" not found`);
+  }
+}
+
+export class ApiKeyNotFoundError extends Error {
+  constructor(apiKeyName: string) {
+    super(`API key "${apiKeyName}" not found`);
   }
 }
 
@@ -16,10 +23,13 @@ export interface ContainerConfig {
   environment: Environment;
   centrifugeWebSocket?: any;
   wallets: Record<string, WalletConfig>;
+  apiKeys: Record<string, ApiKey>;
 }
 
 export class Container {
   private readonly accountsPool = new Map<string, Promise<WalletAccount>>();
+
+  private readonly apiKeysPool = new Map<string, Promise<ApiKeyAccount>>();
 
   readonly gateway: Factory<Gateway> = singleton(
     () =>
@@ -58,9 +68,26 @@ export class Container {
 
     return account;
   }
+
+  apiKey(apiKeyName: string) {
+    const userApiKey = this.config.apiKeys[apiKeyName];
+    if (!userApiKey) throw new ApiKeyNotFoundError(apiKeyName);
+
+    return userApiKey;
+  }
+
+  apiKeyAccount(apiKeyName: string) {
+    let apiKeyAccount = this.apiKeysPool.get(apiKeyName);
+    if (!apiKeyAccount) {
+      apiKeyAccount = this.gateway().createApiKeyAccount(this.apiKey(apiKeyName));
+      this.apiKeysPool.set(apiKeyName, apiKeyAccount);
+    }
+
+    return apiKeyAccount;
+  }
 }
 
-type ClientConfig = Pick<ContainerConfig, "centrifugeWebSocket" | "wallets">;
+type ClientConfig = Pick<ContainerConfig, "centrifugeWebSocket" | "wallets" | "apiKeys">;
 
 export class ProdContainer extends Container {
   constructor(config: ClientConfig) {

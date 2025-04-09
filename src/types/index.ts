@@ -52,7 +52,9 @@ export type Coin = evedexApi.utils.Coin;
 export type TradesQuery = evedexApi.TradesQuery;
 export type Trade = evedexApi.utils.Trade;
 export type MarketInfo = evedexApi.utils.MarketInfo;
-export type MarketDepthQuery = evedexApi.MarketDepthQuery;
+export interface MarketDepthQuery extends Omit<evedexApi.MarketDepthQuery, "roundPrice"> {
+  roundPrice?: OrderBookRoundPricesType;
+}
 export type MarketDepth = evedexApi.utils.MarketDepth;
 export type User = evedexApi.utils.User;
 export type PositionList = evedexApi.utils.PositionList;
