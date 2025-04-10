@@ -17,6 +17,7 @@ export type ReplaceStopLimitOrder = exchangeCrypto.utils.ReplaceStopLimitOrder;
 export type TpSl = exchangeCrypto.utils.TpSl;
 export type OrderTpSl = exchangeCrypto.utils.OrderTpSl;
 export const OrderStatus = evedexApi.utils.OrderStatus;
+export const OrderType = evedexApi.utils.OrderType;
 export type SignedTpSl = exchangeCrypto.SignedTpSl;
 export type TradingBalanceWithdraw = exchangeCrypto.TradingBalanceWithdraw;
 
@@ -52,6 +53,8 @@ export type Coin = evedexApi.utils.Coin;
 export type TradesQuery = evedexApi.TradesQuery;
 export type Trade = evedexApi.utils.Trade;
 export type MarketInfo = evedexApi.utils.MarketInfo;
+export type OpenedOrdersList = evedexApi.utils.OpenedOrdersList;
+export type OpenedOrder = evedexApi.utils.OpenedOrder;
 export interface MarketDepthQuery extends Omit<evedexApi.MarketDepthQuery, "roundPrice"> {
   roundPrice?: OrderBookRoundPricesType;
 }

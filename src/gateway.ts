@@ -19,7 +19,6 @@ import {
   MarketInfo,
   MarketOrderPayload,
   MatcherUpdateEvent,
-  Order,
   OrderBookBestUpdateEvent,
   OrderBookRoundPrices,
   OrderBookUpdateEvent,
@@ -50,6 +49,8 @@ import {
   TradesQuery,
   TradingBalanceWithdraw,
   User,
+  OpenedOrdersList,
+  OpenedOrder,
 } from "./types";
 import Big from "big.js";
 import { generateShortUuid } from "./utils";
@@ -543,6 +544,10 @@ export class ApiKeyAccount {
       availableBalance: String(availableBalance),
     };
   }
+
+  async fetchOpenOrders(): Promise<OpenedOrdersList> {
+    return this.exchangeGateway.getOpenedOrders();
+  }
 }
 
 export interface SessionAccountOptions extends ApiKeyAccountOptions {
@@ -745,15 +750,25 @@ export class Balance {
     this.onPositionUpdate(position);
   }
 
-  private orders = new Map<string, Order>();
+  private orders = new Map<string, OpenedOrder>();
 
-  protected updateOrder(order: Order) {
+  protected updateOrder(order: OpenedOrder) {
     const currentState = this.orders.get(order.id);
+
     if (currentState && new Date(currentState.updatedAt) >= new Date(order.updatedAt)) {
       return;
     }
 
-    this.orders.set(order.id, order);
+    const orderActive = [OrderStatus.New, OrderStatus.PartiallyFilled].includes(order.status);
+
+    if (orderActive) {
+      this.orders.set(order.id, order);
+    }
+
+    if (currentState && !orderActive) {
+      this.orders.delete(currentState.id);
+    }
+
     this.onOrderUpdate(order);
   }
 
@@ -975,7 +990,7 @@ export class Balance {
 
   public readonly onPositionUpdate = evedexApi.utils.signal<evedexApi.utils.Position>();
 
-  public readonly onOrderUpdate = evedexApi.utils.signal<evedexApi.utils.Order>();
+  public readonly onOrderUpdate = evedexApi.utils.signal<evedexApi.utils.OpenedOrder>();
 
   public readonly onTpSlUpdate = evedexApi.utils.signal<evedexApi.utils.TpSl>();
 
@@ -1011,8 +1026,8 @@ export class Balance {
         .getPositions()
         .then(({ list }) => list.forEach((data) => this.updatePosition(data))),
       this.gateway.exchangeGateway
-        .getOrders({})
-        .then(({ list }) => list.forEach((data) => this.updateOrder(data))),
+        .getOpenedOrders()
+        .then((list) => list.forEach((data) => this.updateOrder(data))),
       this.gateway.exchangeGateway
         .getTpSl({})
         .then(({ list }) => list.forEach((data) => this.updateTpSl(data))),
