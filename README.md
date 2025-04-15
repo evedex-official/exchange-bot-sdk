@@ -1,95 +1,59 @@
 # exchange-bot-sdk
 
 ## Установка
+
 1. Добавить в проект файл .npmrc следующего содержания
+
 ```
 @eventhorizon:registry=https://gitlab.eventhorizon.life/api/v4/groups/59/-/packages/npm/
 ```
+
 2. npm i @eventhorizon/exchange-bot-sdk
 
-## Конфигурация
+## Инициализация сдк
 
 ### DEVELOPMENT ENVIRONMENT
 
-```
-  const container = new evedexSdk.Container({
-    exchangeURI: "https://exchange.evedex.tech",
-    authURI:  "https://auth.evedex.tech",
-    centrifugeURI: "wss://ws.evedex.tech/connection/websocket",
-    centrifugePrefix: "futures-perp-dev",
-    centrifugeWebSocket: WebSocket,
-    wallets: {
-      baseAccount: {
-        privateKey: "0x...",
-        chain: "16182",
-      },
+```ts
+const container = new evedexSdk.DevContainer({
+  centrifugeWebSocket: WebSocket,
+  wallets: {
+    baseAccount: {
+      privateKey: "0x...",
     },
-  });
+  },
+  apiKeys: {},
+});
 ```
 
 ### DEMO TRADING ENVIRONMENT
-```
-  const container = new evedexSdk.Container({
-    exchangeURI: "https://demo-exchange-api.evedex.com",
-    authURI:  "https://auth.evedex.com",
-    centrifugeURI: "wss://ws.evedex.com/connection/websocket",
-    centrifugePrefix: "futures-perp-demo",
-    centrifugeWebSocket: WebSocket,
-    wallets: {
-      baseAccount: {
-        privateKey: "0x...",
-        chain: "16182",
-      },
-    },
-  });
-```
-
-
-### PRODUCTION ENVIRONMENT
-```
-  const container = new evedexSdk.Container({
-    exchangeURI: "https://exchange-api.evedex.com",
-    authURI:  "https://auth.evedex.com",
-    centrifugeURI: "wss://ws.evedex.com/connection/websocket",
-    centrifugePrefix: "futures-perp",
-    centrifugeWebSocket: WebSocket,
-    wallets: {
-      baseAccount: {
-        privateKey: "0x...",
-        chain: "161803",
-      },
-    },
-  });
-```
-
-## Инициализация
-
-Для взаимодействия с открытыми методами биржи, используется экземпляр класса `Gateway`, принимающий следующие опции инициализации:
-
-- `httpClient` - экземпляр HTTP-клиента или сессия (будет использован клиент по умолчанию)
-- `centrifuge` - экземпляр Centrifugo-клиента или конфигурация соединения (будет использован клиент по умолчанию)
-- `exchangeURI` - URI биржи
-- `authURI` - URI сервиса аутентификации
-
-Пример использования:
 
 ```ts
-import * as evedexSdk from "@eventhorizon/exchange-bot-sdk";
-
-const gateway = new evedexSdk.Gateway({
-  httpClient: {},
-  centrifuge: {
-    uri: "wss://ws.evedex.tech/connection/websocket",
-    prefix: "futures-perp-dev",
-    websocket: WebSocket, // конструктор websocket клиента, используемого в данном окружении
+const container = new evedexSdk.DemoContainer({
+  centrifugeWebSocket: WebSocket,
+  wallets: {
+    baseAccount: {
+      privateKey: "0x...",
+    },
   },
-  exchangeURI: "https://exchange.evedex.tech",
-  authURI: "https://auth.evedex.tech",
+  apiKeys: {},
 });
-
-gateway.onOrderBookBestUpdate((bestPrices) => console.info(bestPrices));
-gateway.listenOrderBookBest("DBTCUSDT");
 ```
+
+### PRODUCTION ENVIRONMENT
+
+```ts
+const container = new evedexSdk.ProdContainer({
+  centrifugeWebSocket: WebSocket,
+  wallets: {
+    baseAccount: {
+      privateKey: "0x...",
+    },
+  },
+  apiKeys: {},
+});
+```
+
 
 ## Аккаунт пользователя
 
@@ -110,17 +74,27 @@ gateway.listenOrderBookBest("DBTCUSDT");
 ```ts
 import * as evedexSdk from "@eventhorizon/exchange-bot-sdk";
 
-const gateway = new evedexSdk.Gateway({ ... });
+const container = new evedexSdk.DevContainer({
+  centrifugeWebSocket: WebSocket,
+  wallets: {},
+  apiKeys: {
+    mainApiKey: {
+      apiKey: "cUxD***uOUQ=",
+    },
+  },
+});
 
-const apiKey = 'cUxD***uOUQ='; // Api key hash
-const apiKeyAccount = await gateway.createApiKeyAccount(apiKey)
+const account = await container.apiKeyAccount("mainApiKey");
 
-const accountBalance = apiKeyAccount.getBalance();
+console.info("userData", await account.fetchMe());
+
+const accountBalance = account.getBalance();
+
 accountBalance.onPositionUpdate((position) => console.info(position));
 accountBalance.listen();
 ```
 
-### Session Account
+### Wallet Account
 
 Данный тип аккаунта использует JWT в качестве сессии. При этом токен может быть передан аккаунту непосредственно, либо осуществлена авторизация пользователя с использованием метода `SIWE` сервиса авторизации.
 
@@ -129,79 +103,29 @@ accountBalance.listen();
 ```ts
 import * as evedexSdk from "@eventhorizon/exchange-bot-sdk";
 
-const gateway = new evedexSdk.Gateway({ ... });
-
-const authUser = {...}:
-const accessToken = '...';
-const refreshToken = '...';
-const sessionAccount = await gateway.createSessionAccount({ user: authUser, token: { accessToken, refreshToken }});
-// or
-const address = '...';
-const message = '...';
-const signature = '...';
-const sessionAccount = await gateway.signInSessionAccount({ address, message, signature });
-
-const accountBalance = sessionAccount.getBalance();
-accountBalance.onPositionUpdate((position) => console.info(position));
-accountBalance.listen();
-```
-
-### Wallet Account
-
-Данный тип аккаунта использует Wallet клиент, для авторизации и JWT в качестве сессии. Этот аккаунт позволяет не только получать информацию об аккаунте, но и создавать заявки на бирже.
-
-Пример использования:
-
-```ts
-import * as evedexSdk from "@eventhorizon/exchange-bot-sdk";
-
-const gateway = new evedexSdk.Gateway({ ... });
-
-const privateKey = '...';
-const wallet = new Wallet({
-    privateKey,
-    chain: '16182', // так же может использоваться rpc-провайдер для автоматического определения chainId
-});
-
-const walletAccount = await gateway.signInWalletAccount(wallet);
-
-const accountBalance = walletAccount.getBalance();
-accountBalance.onPositionUpdate((position) => console.info(position));
-accountBalance.listen();
-
-await walletAccount.createLimitOrder({
-    // опции новой limit заявки
-});
-```
-
-## Контейнер
-
-Для упрощения доступа к SDK может использоваться экземпляр класса `Container`, хранящий конфигурации и зависимости.
-
-Пример использования:
-
-```ts
-import * as evedexSdk from "@eventhorizon/exchange-bot-sdk";
-
-const container = new evedexSdk.Container({
-  exchangeURI: "...",
-  authURI: "...",
-  centrifugeURI: "...",
-  centrifugePrefix: "...",
+const container = new evedexSdk.DevContainer({
   centrifugeWebSocket: WebSocket,
   wallets: {
     baseAccount: {
-      privateKey: "...",
-      chain: "16182",
+      privateKey: "0x...",
     },
   },
 });
 
-const gateway = container.gateway();
-const baseWallet = container.wallet("baseAccount");
-const baseWalletAccount = await container.account("baseAccount");
+const account = await container.account("baseAccount");
 
-const accountBalance = baseWalletAccount.getBalance();
-accountBalance.onPositionUpdate((position) => console.info(position));
-accountBalance.listen();
+const accountBalance = account.getBalance();
+
+accountBalance.onAccountUpdate((state) =>
+  console.info(`Account margin call = ${state.marginCall}; last update = ${state.updatedAt}`),
+);
+accountBalance.onFundingUpdate((state) => console.info(`Funding = ${state.quantity} USDT`));
+accountBalance.onPositionUpdate((state) =>
+  console.info(
+    `Position ${state.instrument} qty = ${state.quantity}; avgPrice = ${state.avgPrice}`,
+  ),
+);
+await accountBalance.listen();
+
+console.info("Available balance from calculate method", await accountBalance.getAvailableBalance());
 ```

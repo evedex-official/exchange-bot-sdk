@@ -30,7 +30,6 @@ import {
   OrderStatus,
   Position,
   PositionCloseOrderPayload,
-  PositionList,
   PositionUpdateQuery,
   ReplaceLimitOrder,
   ReplaceStopLimitOrder,
@@ -51,6 +50,7 @@ import {
   User,
   OpenedOrdersList,
   OpenedOrder,
+  type PositionMetrics,
 } from "./types";
 import Big from "big.js";
 import { generateShortUuid } from "./utils";
@@ -504,10 +504,10 @@ export class ApiKeyAccount {
 
   /**
    * Fetches a list of current user positions.
-   * @returns {Promise<PositionList>}
+   * @returns {Promise<PositionMetrics[]>}
    */
-  fetchPositions(): Promise<PositionList> {
-    return this.exchangeGateway.getPositions();
+  async fetchPositions(): Promise<PositionMetrics[]> {
+    return this.exchangeGateway.getPositions().then(({ list }) => list);
   }
 
   /**
