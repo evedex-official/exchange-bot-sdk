@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-redeclare */
 import * as evedexApi from "@eventhorizon/exchange-api";
 import * as exchangeCrypto from "@eventhorizon/exchange-crypto";
 
@@ -6,7 +7,7 @@ export enum CollateralCurrency {
 }
 
 export const OrderBookRoundPrices = evedexApi.utils.OrderBookRoundPrices;
-export type OrderBookRoundPricesType = typeof evedexApi.utils.OrderBookRoundPrices;
+export type OrderBookRoundPrices = typeof evedexApi.utils.OrderBookRoundPrices;
 
 export type LimitOrder = exchangeCrypto.utils.LimitOrder;
 export type MarketOrder = exchangeCrypto.utils.MarketOrder;
@@ -17,15 +18,21 @@ export type ReplaceStopLimitOrder = exchangeCrypto.utils.ReplaceStopLimitOrder;
 export type TpSl = exchangeCrypto.utils.TpSl;
 export type OrderTpSl = exchangeCrypto.utils.OrderTpSl;
 export const OrderStatus = evedexApi.utils.OrderStatus;
+export type OrderStatus = typeof evedexApi.utils.OrderStatus;
 export const OrderType = evedexApi.utils.OrderType;
+export type OrderType = typeof evedexApi.utils.OrderType;
+export const OrderGroup = evedexApi.utils.OrderGroup;
+export type OrderGroup = typeof evedexApi.utils.OrderGroup;
+export const TpSlStatus = evedexApi.utils.TpSlStatus;
+export type TpSlStatus = typeof evedexApi.utils.TpSlStatus;
 export type SignedTpSl = exchangeCrypto.SignedTpSl;
 export type TradingBalanceWithdraw = exchangeCrypto.TradingBalanceWithdraw;
 
 export const Side = exchangeCrypto.utils.Side;
-export type SideType = typeof exchangeCrypto.utils.Side;
+export type Side = typeof exchangeCrypto.utils.Side;
 
 export const TimeInForce = exchangeCrypto.utils.TimeInForce;
-export type TimeInForceType = typeof exchangeCrypto.utils.TimeInForce;
+export type TimeInForce = typeof exchangeCrypto.utils.TimeInForce;
 
 export type PositionUpdateQuery = evedexApi.PositionUpdateQuery;
 export type OrderCancelQuery = evedexApi.OrderCancelQuery;
@@ -55,8 +62,9 @@ export type Trade = evedexApi.utils.Trade;
 export type MarketInfo = evedexApi.utils.MarketInfo;
 export type OpenedOrdersList = evedexApi.utils.OpenedOrdersList;
 export type OpenedOrder = evedexApi.utils.OpenedOrder;
+export type PositionMetrics = evedexApi.utils.PositionMetrics;
 export interface MarketDepthQuery extends Omit<evedexApi.MarketDepthQuery, "roundPrice"> {
-  roundPrice?: OrderBookRoundPricesType;
+  roundPrice?: OrderBookRoundPrices;
 }
 export type MarketDepth = evedexApi.utils.MarketDepth;
 export type User = evedexApi.utils.User;
