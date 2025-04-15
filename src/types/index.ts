@@ -7,7 +7,7 @@ export enum CollateralCurrency {
 }
 
 export const OrderBookRoundPrices = evedexApi.utils.OrderBookRoundPrices;
-export type OrderBookRoundPrices = typeof evedexApi.utils.OrderBookRoundPrices;
+export type OrderBookRoundPrices = evedexApi.utils.OrderBookRoundPrices;
 
 export type LimitOrder = exchangeCrypto.utils.LimitOrder;
 export type MarketOrder = exchangeCrypto.utils.MarketOrder;
@@ -18,21 +18,21 @@ export type ReplaceStopLimitOrder = exchangeCrypto.utils.ReplaceStopLimitOrder;
 export type TpSl = exchangeCrypto.utils.TpSl;
 export type OrderTpSl = exchangeCrypto.utils.OrderTpSl;
 export const OrderStatus = evedexApi.utils.OrderStatus;
-export type OrderStatus = typeof evedexApi.utils.OrderStatus;
+export type OrderStatus = evedexApi.utils.OrderStatus;
 export const OrderType = evedexApi.utils.OrderType;
-export type OrderType = typeof evedexApi.utils.OrderType;
+export type OrderType = evedexApi.utils.OrderType;
 export const OrderGroup = evedexApi.utils.OrderGroup;
-export type OrderGroup = typeof evedexApi.utils.OrderGroup;
+export type OrderGroup = evedexApi.utils.OrderGroup;
 export const TpSlStatus = evedexApi.utils.TpSlStatus;
-export type TpSlStatus = typeof evedexApi.utils.TpSlStatus;
+export type TpSlStatus = evedexApi.utils.TpSlStatus;
 export type SignedTpSl = exchangeCrypto.SignedTpSl;
 export type TradingBalanceWithdraw = exchangeCrypto.TradingBalanceWithdraw;
 
 export const Side = exchangeCrypto.utils.Side;
-export type Side = typeof exchangeCrypto.utils.Side;
+export type Side = exchangeCrypto.utils.Side;
 
 export const TimeInForce = exchangeCrypto.utils.TimeInForce;
-export type TimeInForce = typeof exchangeCrypto.utils.TimeInForce;
+export type TimeInForce = exchangeCrypto.utils.TimeInForce;
 
 export type PositionUpdateQuery = evedexApi.PositionUpdateQuery;
 export type OrderCancelQuery = evedexApi.OrderCancelQuery;
