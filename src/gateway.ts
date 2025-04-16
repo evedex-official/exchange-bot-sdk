@@ -37,20 +37,19 @@ import {
   Side,
   SignInSiweQuery,
   StopLimitOrderPayload,
-  TpSl,
   TpSlCancelQuery,
   TpSlList,
   TpSlListQuery,
-  TpSlState,
   TpSlUpdateQuery,
   Trade,
-  TradeEvent,
   TradesQuery,
   TradingBalanceWithdraw,
   User,
   OpenedOrdersList,
   OpenedOrder,
-  type PositionMetrics,
+  PositionWithoutMetrics,
+  TpSlCreatePayload,
+  TpSl,
 } from "./types";
 import Big from "big.js";
 import { generateShortUuid } from "./utils";
@@ -123,7 +122,7 @@ export class Gateway {
     this.wsGateway.onMatcherUpdate((matcherState) => this.updateMatcherState(matcherState));
     this.wsGateway.onOrderBookBestUpdate((orderBook) => this.updateOrderBookBest(orderBook));
     this.wsGateway.onOrderBookUpdate((orderBook) => this.updateOrderBook(orderBook));
-    this.wsGateway.onTrade((trade) => this.updateTrade(trade));
+    this.wsGateway.onRecentTrade((trade) => this.updateTrade(trade));
     this.wsGateway.onFundingRateUpdate((fundingRate) => this.updateFundingRateState(fundingRate));
   }
 
@@ -182,7 +181,7 @@ export class Gateway {
 
   private lastTradeDate = new Map<string, Date>();
 
-  protected updateTrade(trade: TradeEvent) {
+  protected updateTrade(trade: Trade) {
     if ((this.lastTradeDate.get(trade.instrument) ?? new Date(0)) >= new Date(trade.createdAt)) {
       return;
     }
@@ -299,11 +298,11 @@ export class Gateway {
     }
 
     this.lastTradeDate.set(instrument, new Date(0));
-    this.wsGateway.listenTrades({ instrument });
+    this.wsGateway.listenRecentTrades({ instrument });
   }
 
   unListenTrades(instrument: string) {
-    this.wsGateway.unListenTrades({ instrument });
+    this.wsGateway.unListenRecentTrades({ instrument });
     this.lastTradeDate.delete(instrument);
   }
 
@@ -417,7 +416,7 @@ export class Gateway {
    */
 
   async fetchTrades(tradesQuery: TradesQuery): Promise<Trade[]> {
-    return this.exchangeGateway.getTrades(tradesQuery);
+    return this.exchangeGateway.getRecentTrades(tradesQuery);
   }
 
   /**
@@ -504,9 +503,9 @@ export class ApiKeyAccount {
 
   /**
    * Fetches a list of current user positions.
-   * @returns {Promise<PositionMetrics[]>}
+   * @returns {Promise<Position[]>}
    */
-  async fetchPositions(): Promise<PositionMetrics[]> {
+  async fetchPositions(): Promise<Position[]> {
     return this.exchangeGateway.getPositions().then(({ list }) => list);
   }
 
@@ -660,11 +659,11 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.massCancelUserOrdersById(query);
   }
 
-  private signCreateTpSl(tpsl: TpSl) {
+  private signCreateTpSl(tpsl: TpSlCreatePayload) {
     return evedexCrypto.signTpSl(this.wallet, tpsl);
   }
 
-  async createTpSl(tpsl: TpSl) {
+  async createTpSl(tpsl: TpSlCreatePayload) {
     return this.exchangeGateway.createTpSl(await this.signCreateTpSl(tpsl));
   }
 
@@ -738,9 +737,9 @@ export class Balance {
     this.onFundingUpdate(updated);
   }
 
-  private positions = new Map<string, Position>();
+  private positions = new Map<string, PositionWithoutMetrics>();
 
-  protected updatePosition(position: Position) {
+  protected updatePosition(position: PositionWithoutMetrics) {
     const currentState = this.positions.get(position.instrument);
     if (currentState && new Date(currentState.updatedAt) >= new Date(position.updatedAt)) {
       return;
@@ -772,9 +771,9 @@ export class Balance {
     this.onOrderUpdate(order);
   }
 
-  private tpsl = new Map<string, TpSlState>();
+  private tpsl = new Map<string, TpSl>();
 
-  protected updateTpSl(tpsl: TpSlState) {
+  protected updateTpSl(tpsl: TpSl) {
     const currentState = this.tpsl.get(tpsl.id);
     if (currentState && new Date(currentState.updatedAt) >= new Date(tpsl.updatedAt)) {
       return;
