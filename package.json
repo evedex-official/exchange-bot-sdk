@@ -1,6 +1,6 @@
 {
   "name": "@eventhorizon/exchange-bot-sdk",
-  "version": "1.0.43",
+  "version": "1.1.0",
   "description": "",
   "main": "dist/cjs/index.js",
   "module": "dist/mjs/index.js",
