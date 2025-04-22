@@ -82,7 +82,7 @@ const container = new evedexSdk.ProdContainer({
 
 ApiKeyAccount is designed to read user account state, including: balances, positions, orders.
 
-You can create api key if you already logged in to evedex exchange.  
+You can create api key if you already logged in to evedex exchange.
 
 Go to profile menu by clicking on avatar at the upper right corner => go to settings => API => create API key
 
@@ -91,7 +91,18 @@ Init example:
 ```ts
 import * as evedexSdk from "@eventhorizon/exchange-bot-sdk";
 
-const container = new evedexSdk.DemoContainer({
+const container = evedexSdk.initContainer(evedexSdk.Environment.DEMO, {
+  centrifugeWebSocket: WebSocket,
+  wallets: {},
+  apiKeys: {
+    mainApiKey: {
+      apiKey: "cUxD***uOUQ=",
+    },
+  },
+})
+
+// or
+const demoContainer = new evedexSdk.DemoContainer({
   centrifugeWebSocket: WebSocket,
   wallets: {},
   apiKeys: {
@@ -170,7 +181,7 @@ const container = new evedexSdk.DemoContainer({
   },
 });
 
-const account = await container.account("baseAccount"); 
+const account = await container.account("baseAccount");
 
 const balance = account.getBalance();
 
@@ -185,7 +196,7 @@ balance.onAccountUpdate(a => console.info(a));
 
 ### Examples
 
-Here is full example of sdk usage: 
+Here is full example of sdk usage:
 
 ```ts
 
@@ -234,7 +245,7 @@ const sampleAccountData = async (account: evedexSdk.WalletAccount | evedexSdk.Ap
   // let's subscribe to account state metrics
   await accountState.listen(); //await is important here as it will wait till cache is populated
   console.log("Account metrics subscription done, getting state now:");
-  
+
   // log current state from cache
   console.log(accountState.getOrderList().filter(o => o.status === evedexSdk.OrderStatus.New));
   console.log(accountState.getFundingQuantity(evedexSdk.CollateralCurrency.USDT));
@@ -276,12 +287,12 @@ const sampleOrders = async (account: evedexSdk.WalletAccount) => {
   console.info(`Order created: ${order.id}`);
   console.log("Cancelling limit order...");
 
-  await account.cancelOrder({ orderId: order.id }); 
+  await account.cancelOrder({ orderId: order.id });
   try {
     //both queries will fail with 400 as order is already cancelled
     await account.massCancelUserOrders({ instrument: "BTCUSDT:DEMO" });
     await account.massCancelUserOrdersById({ orderIds: [order.id] });
-  } 
+  }
   catch (e: any) { if (e instanceof AxiosError) console.log(e.response?.data.error)}
 }
 
