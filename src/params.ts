@@ -7,12 +7,23 @@ export interface GatewayParams {
 }
 
 export enum Environment {
+  LOCAL = "local",
   DEV = "dev",
   DEMO = "demo",
   PROD = "prod",
 }
 
 export const GatewayParamsMap = new Map<Environment, GatewayParams>([
+  [
+    Environment.LOCAL,
+    {
+      exchangeURI: "https://exchange-local.eh-dev.app",
+      authURI: "https://auth-local.eh-dev.app",
+      centrifugeURI: "wss://centrifugo-local.eh-dev.app",
+      centrifugePrefix: "futures-perp",
+      chainId: "16182",
+    },
+  ],
   [
     Environment.DEV,
     {
