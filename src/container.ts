@@ -106,3 +106,29 @@ export class DevContainer extends Container {
     super({ ...config, environment: Environment.DEV });
   }
 }
+
+export class LocalContainer extends Container {
+  constructor(config: ClientConfig) {
+    super({ ...config, environment: Environment.LOCAL });
+  }
+}
+
+export function initContainer(env: Environment, config: ClientConfig): Container {
+  switch (env) {
+    case Environment.PROD: {
+      return new ProdContainer(config);
+    }
+    case Environment.DEMO: {
+      return new DemoContainer(config);
+    }
+    case Environment.DEV: {
+      return new DevContainer(config);
+    }
+    case Environment.LOCAL: {
+      return new LocalContainer(config);
+    }
+    default: {
+      throw new Error("Unknown environment type");
+    }
+  }
+}
