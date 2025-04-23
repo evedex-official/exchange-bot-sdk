@@ -16,16 +16,10 @@ This SDK enables programmatic access to [Evedex exchange](https://demo-exchange.
 
 1. Init npm project
 
-2. Add `.npmrc` file contains:
+2. Install exchange-bot-sdk dependency
 
 ```
-@eventhorizon:registry=https://gitlab.eventhorizon.life/api/v4/groups/59/-/packages/npm/
-```
-
-3. Install exchange-bot-sdk dependency
-
-```
-npm i @eventhorizon/exchange-bot-sdk --save
+npm i @evedex/exchange-bot-sdk --save
 ```
 
 ## Usage
@@ -89,7 +83,7 @@ Go to profile menu by clicking on avatar at the upper right corner => go to sett
 Init example:
 
 ```ts
-import * as evedexSdk from "@eventhorizon/exchange-bot-sdk";
+import * as evedexSdk from "@evedex/exchange-bot-sdk";
 
 const container = evedexSdk.initContainer(evedexSdk.Environment.DEMO, {
   centrifugeWebSocket: WebSocket,
@@ -126,7 +120,7 @@ WalletAccout has all posibilities to read user account state and also includes:
 Init example:
 
 ```ts
-import * as evedexSdk from "@eventhorizon/exchange-bot-sdk";
+import * as evedexSdk from "@evedex/exchange-bot-sdk";
 
 const container = new evedexSdk.DemoContainer({
   centrifugeWebSocket: WebSocket,
@@ -170,7 +164,7 @@ Signals are disgned for handling events:
 
 
 ```ts
-import * as evedexSdk from "@eventhorizon/exchange-bot-sdk";
+import * as evedexSdk from "@evedex/exchange-bot-sdk";
 
 const container = new evedexSdk.DemoContainer({
   centrifugeWebSocket: WebSocket,
@@ -200,7 +194,7 @@ Here is full example of sdk usage:
 
 ```ts
 
-import * as evedexSdk from "@eventhorizon/exchange-bot-sdk";
+import * as evedexSdk from "@evedex/exchange-bot-sdk";
 import { AxiosError } from "axios";
 import WebSocket from 'ws';
 
@@ -310,9 +304,6 @@ const main = async () => {
 
 main().catch(e => console.error(e));
 ```
-
-More usage examples at: [exchange-bot-sdk-playground](https://gitlab.eventhorizon.life/npm-public/exchange-bot-sdk-playground)
-
 
 ## Methods tree
 
