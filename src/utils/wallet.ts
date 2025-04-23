@@ -1,4 +1,4 @@
-import * as evedexCrypto from "@eventhorizon/exchange-crypto";
+import * as evedexCrypto from "@evedex/exchange-crypto";
 import { ethers } from "ethers";
 
 export class UnDetermineChainIdError extends Error {}

@@ -1,5 +1,5 @@
-import * as evedexCrypto from "@eventhorizon/exchange-crypto";
-import * as evedexApi from "@eventhorizon/exchange-api";
+import * as evedexCrypto from "@evedex/exchange-crypto";
+import * as evedexApi from "@evedex/exchange-api";
 import { RestClient } from "./utils/rest";
 import { Wallet } from "./utils/wallet";
 import { CentrifugeClient, CentrifugeSubscription } from "./utils/ws";

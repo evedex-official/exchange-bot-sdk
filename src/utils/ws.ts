@@ -1,4 +1,4 @@
-import * as evedexApi from "@eventhorizon/exchange-api";
+import * as evedexApi from "@evedex/exchange-api";
 import { Centrifuge, PublicationContext, Subscription } from "centrifuge";
 
 export class CentrifugeSubscription implements evedexApi.utils.CentrifugeSubscription {

@@ -1,5 +1,5 @@
 {
-  "name": "@eventhorizon/exchange-bot-sdk",
+  "name": "@evedex/exchange-bot-sdk",
   "version": "1.1.0",
   "description": "",
   "main": "dist/cjs/index.js",
@@ -64,11 +64,16 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@eventhorizon/exchange-api": "^1.0.30",
-    "@eventhorizon/exchange-crypto": "^1.0.8",
+    "@evedex/exchange-api": "^1.0.32",
+    "@evedex/exchange-crypto": "^1.0.10",
     "big.js": "^6.2.2",
     "ethers": "^6.13.5",
     "siwe": "^3.0.0",
     "uuid": "^11.1.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "latest"
   }
 }

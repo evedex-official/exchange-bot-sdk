@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-redeclare */
-import * as evedexApi from "@eventhorizon/exchange-api";
-import * as exchangeCrypto from "@eventhorizon/exchange-crypto";
+import * as evedexApi from "@evedex/exchange-api";
+import * as exchangeCrypto from "@evedex/exchange-crypto";
 
 export enum CollateralCurrency {
   USDT = "usdt",

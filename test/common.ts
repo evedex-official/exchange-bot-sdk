@@ -1,4 +1,4 @@
-import type * as evedexApi from "@eventhorizon/exchange-api";
+import type * as evedexApi from "@evedex/exchange-api";
 export * as src from "../src";
 export { default as config } from "./config";
 

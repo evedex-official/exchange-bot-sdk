@@ -1,4 +1,4 @@
-import * as evedexApi from "@eventhorizon/exchange-api";
+import * as evedexApi from "@evedex/exchange-api";
 import axios from "axios";
 
 export class UnauthorizedRequest extends Error {}

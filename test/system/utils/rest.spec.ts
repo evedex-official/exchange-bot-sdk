@@ -1,4 +1,4 @@
-import * as evedexApi from "@eventhorizon/exchange-api";
+import * as evedexApi from "@evedex/exchange-api";
 import { config, src } from "../../common";
 import assert from "assert";
 
