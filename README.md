@@ -305,6 +305,12 @@ const main = async () => {
 main().catch(e => console.error(e));
 ```
 
+### How to get test USDT in Development environment
+For your convenience there's a test faucet that immediately deposits 1000 USDT to your smart-account in Development environment.
+
+1. The first run happens automatically when you register on https://demo-exchange.evedex.com
+1. After that you can once in a while request test funds using the button "Request Demo Funds" in the bottom-right of the Exchange screen.
+
 ## Methods tree
 
 ### Container
