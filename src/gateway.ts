@@ -136,7 +136,10 @@ export class Gateway {
   }
 
   protected updateInstrumentState(instrumentState: InstrumentState) {
-    const updatedAtTimestamp = instrumentState.updatedAt.getTime();
+    const updatedAtTimestamp =
+      instrumentState.updatedAt instanceof Date
+        ? instrumentState.updatedAt.getTime()
+        : (new Date(instrumentState.updatedAt)?.getTime() ?? 0);
     if ((this.lastInstrumentStateUpdateTime.get(instrumentState.name) ?? 0) >= updatedAtTimestamp) {
       return;
     }
