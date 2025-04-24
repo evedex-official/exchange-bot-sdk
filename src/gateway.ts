@@ -924,7 +924,7 @@ export class Balance {
           status,
           side,
           unFilledVolume: unFilledVolume,
-          unFilledInitialMargin: positions
+          unFilledInitialMargin: positionData
             ? Big(unFilledVolume)
                 .div(positionData?.leverage ?? 1)
                 .toString()
