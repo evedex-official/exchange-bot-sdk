@@ -50,6 +50,8 @@ import {
   PositionWithoutMetrics,
   TpSlCreatePayload,
   TpSl,
+  type InstrumentState,
+  type InstrumentMarkPrice,
 } from "./types";
 import Big from "big.js";
 import { generateShortUuid } from "./utils";
@@ -124,10 +126,24 @@ export class Gateway {
     this.wsGateway.onOrderBookUpdate((orderBook) => this.updateOrderBook(orderBook));
     this.wsGateway.onRecentTrade((trade) => this.updateTrade(trade));
     this.wsGateway.onFundingRateUpdate((fundingRate) => this.updateFundingRateState(fundingRate));
+    this.wsGateway.onInstrumentUpdate(({ displayName, ...instrumentState }) =>
+      this.updateInstrumentState(instrumentState),
+    );
   }
 
   get session() {
     return this.httpClient.getSession();
+  }
+
+  protected updateInstrumentState(instrumentState: InstrumentState) {
+    const updatedAtTimestamp = instrumentState.updatedAt.getTime();
+    if ((this.lastInstrumentStateUpdateTime.get(instrumentState.name) ?? 0) >= updatedAtTimestamp) {
+      return;
+    }
+
+    this.lastInstrumentStateUpdateTime.set(instrumentState.name, updatedAtTimestamp);
+
+    this.onInstrumentStateUpdate(instrumentState);
   }
 
   protected updateFundingRateState(fundingRateState: evedexApi.FundingRateEvent) {
@@ -191,6 +207,62 @@ export class Gateway {
   }
 
   // Signals
+
+  private lastInstrumentStateUpdateTime = new Map<string, number>();
+
+  public readonly onInstrumentStateUpdate = evedexApi.utils.signal<InstrumentState>();
+
+  async listenInstrumentState() {
+    if (this.lastInstrumentStateUpdateTime.size > 0) return;
+
+    this.wsGateway.listenInstruments();
+
+    const instruments = await this.fetchInstrumentsWithMetrics();
+
+    instruments.forEach(
+      ({
+        id,
+        name,
+        lastPrice,
+        high,
+        low,
+        volume,
+        volumeBase,
+        closePrice,
+        markPrice,
+        openInterest,
+        minPrice,
+        maxPrice,
+        fatFingerPriceProtection,
+        slippageLimit,
+        updatedAt,
+      }) => {
+        this.updateInstrumentState({
+          id,
+          name,
+          lastPrice,
+          high,
+          low,
+          volume,
+          volumeBase,
+          closePrice,
+          markPrice,
+          openInterest,
+          minPrice,
+          maxPrice,
+          fatFingerPriceProtection,
+          slippageLimit,
+          updatedAt,
+        });
+      },
+    );
+  }
+
+  unListenlistenInstrumentState() {
+    this.lastInstrumentStateUpdateTime.clear();
+
+    this.wsGateway.unListenInstruments();
+  }
 
   private lastInstrumentFundingRateTime = new Map<string, number>();
 
@@ -783,6 +855,21 @@ export class Balance {
     this.onTpSlUpdate(tpsl);
   }
 
+  private markPrices = new Map<string, InstrumentMarkPrice>();
+
+  protected updateMarkPrice(instrumentMarkPrice: InstrumentMarkPrice) {
+    const currentState = this.markPrices.get(instrumentMarkPrice.name);
+    if (
+      currentState &&
+      new Date(currentState.updatedAt) >= new Date(instrumentMarkPrice.updatedAt)
+    ) {
+      return;
+    }
+
+    this.markPrices.set(instrumentMarkPrice.name, instrumentMarkPrice);
+    this.onMarkPriceUpdate(instrumentMarkPrice);
+  }
+
   // Getters
   get account() {
     return this.options.account;
@@ -821,18 +908,7 @@ export class Balance {
       currency: CollateralCurrency.USDT,
       balance: this.getFundingQuantity(CollateralCurrency.USDT),
     };
-    const positions = Array.from(
-      this.positions.values(),
-      ({ instrument, side, quantity, avgPrice, leverage }) => {
-        const volume = Big(quantity).mul(avgPrice);
-        return {
-          instrument,
-          side,
-          volume: volume.toString(),
-          initialMargin: volume.div(leverage).toString(),
-        };
-      },
-    );
+
     const openOrderMap = Array.from(
       this.orders.values(),
       ({ instrument, side, unFilledQuantity, limitPrice, status }) => {
@@ -872,18 +948,57 @@ export class Balance {
 
       return carry;
     }, new Map<string, { instrument: string; side: evedexCrypto.utils.Side; unFilledVolume: string; unFilledInitialMargin: string }>());
-    const lock = positions.reduce((carry, { instrument, side, initialMargin }) => {
-      const against = side === Side.Buy ? Side.Sell : Side.Buy;
 
-      return carry.plus(
-        Math.max(
-          Big(openOrderMap.get(`${instrument}:${side}`)?.unFilledInitialMargin ?? 0)
-            .plus(initialMargin)
-            .toNumber(),
-          Big(openOrderMap.get(`${instrument}:${against}`)?.unFilledInitialMargin ?? 0).toNumber(),
-        ),
-      );
-    }, Big(0));
+    const negativeUnrealizedPnL = Big(0);
+
+    const positionsInitialMargin = Big(0);
+
+    const orderTotalMargin = Big(0);
+
+    const positions = Array.from(
+      this.positions.values(),
+      ({ instrument, side, quantity, avgPrice, leverage }) => {
+        const volume = Big(quantity).mul(avgPrice);
+
+        const markPrice = this.markPrices.get(instrument)?.markPrice;
+
+        const unRealizedPnL = markPrice
+          ? Big(markPrice)
+              .minus(avgPrice)
+              .mul(side === Side.Buy ? 1 : -1)
+              .mul(quantity)
+              .toNumber()
+          : 0;
+
+        if (unRealizedPnL < 0) {
+          negativeUnrealizedPnL.add(unRealizedPnL);
+        }
+
+        const initialMargin = volume.div(leverage);
+
+        positionsInitialMargin.add(initialMargin);
+
+        const against = side === Side.Buy ? Side.Sell : Side.Buy;
+
+        orderTotalMargin.plus(
+          Math.max(
+            Big(openOrderMap.get(`${instrument}:${side}`)?.unFilledInitialMargin ?? 0)
+              .plus(initialMargin)
+              .toNumber(),
+            Big(
+              openOrderMap.get(`${instrument}:${against}`)?.unFilledInitialMargin ?? 0,
+            ).toNumber(),
+          ),
+        );
+
+        return {
+          instrument,
+          side,
+          volume: volume.toString(),
+          initialMargin: initialMargin.toString(),
+        };
+      },
+    );
 
     return {
       funding: {
@@ -894,7 +1009,11 @@ export class Balance {
       openOrders: Array.from(openOrderMap.values()).filter(
         ({ unFilledVolume }) => Number(unFilledVolume) > 0,
       ),
-      availableBalance: Big(funding.balance).minus(lock).toString(),
+      availableBalance: Big(funding.balance)
+        .plus(negativeUnrealizedPnL)
+        .minus(orderTotalMargin)
+        .minus(positionsInitialMargin)
+        .toString(),
     };
   }
 
@@ -993,6 +1112,8 @@ export class Balance {
 
   public readonly onTpSlUpdate = evedexApi.utils.signal<evedexApi.utils.TpSl>();
 
+  public readonly onMarkPriceUpdate = evedexApi.utils.signal<InstrumentMarkPrice>();
+
   async listen() {
     if (this._listening) return this;
 
@@ -1010,6 +1131,11 @@ export class Balance {
     this.gateway.wsGateway.listenOrders(listenQuery);
     this.gateway.wsGateway.onTpSlUpdate((tpsl) => this.updateTpSl(tpsl));
     this.gateway.wsGateway.listenTpSl(listenQuery);
+    this.gateway.wsGateway.listenInstruments();
+    this.gateway.onInstrumentStateUpdate(({ name, updatedAt, markPrice }) =>
+      this.updateMarkPrice({ name, updatedAt, markPrice }),
+    );
+    this.gateway.listenInstrumentState();
 
     await Promise.all([
       this.gateway.exchangeGateway.me().then((account) =>
@@ -1048,6 +1174,8 @@ export class Balance {
     this.orders.clear();
     this.gateway.wsGateway.unListenTpSl(unListenQuery);
     this.tpsl.clear();
+    this.gateway.unListenlistenInstrumentState();
+    this.markPrices.clear();
     this._listening = false;
 
     return this;
