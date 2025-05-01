@@ -49,7 +49,7 @@ export const GatewayParamsMap = new Map<Environment, GatewayParams>([
     {
       exchangeURI: "https://exchange-api.evedex.com",
       authURI: "https://auth.evedex.com",
-      centrifugeURI: "wss://stream.evedex.com/connection/websocket",
+      centrifugeURI: "wss://ws.evedex.com/connection/websocket",
       centrifugePrefix: "futures-perp",
       chainId: "161803",
     },
