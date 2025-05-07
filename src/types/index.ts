@@ -33,6 +33,9 @@ export type Side = exchangeCrypto.utils.Side;
 export const TimeInForce = exchangeCrypto.utils.TimeInForce;
 export type TimeInForce = exchangeCrypto.utils.TimeInForce;
 
+export const TpSlType = exchangeCrypto.utils.TpSlType;
+export type TpSlType = exchangeCrypto.utils.TpSlType;
+
 export type PositionUpdateQuery = evedexApi.PositionUpdateQuery;
 export type OrderCancelQuery = evedexApi.OrderCancelQuery;
 export type OrderMassCancelQuery = evedexApi.OrderMassCancelQuery;
