@@ -52,6 +52,7 @@ import {
   TpSl,
   type InstrumentState,
   type InstrumentMarkPrice,
+  OrderType,
 } from "./types";
 import Big from "big.js";
 import { generateShortUuid } from "./utils";
@@ -762,18 +763,8 @@ export type AvailableBalance = {
 };
 
 export interface Power {
-  funding: string;
-  anotherPositionVolume: string;
-  buy: {
-    position: string;
-    unFilledOrder: string;
-    power: string;
-  };
-  sell: {
-    position: string;
-    unFilledOrder: string;
-    power: string;
-  };
+  buy: number;
+  sell: number;
 }
 
 export interface BalanceOptions {
@@ -873,6 +864,15 @@ export class Balance {
     this.onMarkPriceUpdate(instrumentMarkPrice);
   }
 
+  private takerFee = 0;
+
+  private makerFee = 0;
+
+  protected updateFees({ fees }: MarketInfo) {
+    this.takerFee = fees.taker;
+    this.makerFee = fees.maker;
+  }
+
   // Getters
   get account() {
     return this.options.account;
@@ -952,17 +952,29 @@ export class Balance {
       return carry;
     }, new Map<string, { instrument: string; side: evedexCrypto.utils.Side; unFilledVolume: string; unFilledInitialMargin: string }>());
 
-    const negativeUnrealizedPnL = Big(0);
-
-    const positionsInitialMargin = Big(0);
-
-    const orderTotalMargin = Big(0);
-
     const positions = Array.from(
       this.positions.values(),
       ({ instrument, side, quantity, avgPrice, leverage }) => {
         const volume = Big(quantity).mul(avgPrice);
 
+        const margin = volume.div(leverage);
+
+        return {
+          instrument,
+          side,
+          quantity,
+          avgPrice,
+          leverage,
+          volume: volume.toString(),
+          initialMargin: margin.toString(),
+        };
+      },
+    );
+    const { negativeUnrealizedPnL, lock } = positions.reduce<{
+      negativeUnrealizedPnL: Big;
+      lock: Big;
+    }>(
+      (carry, { instrument, side, quantity, avgPrice, leverage, initialMargin }) => {
         const markPrice = this.markPrices.get(instrument)?.markPrice;
 
         const unRealizedPnL = markPrice
@@ -973,34 +985,30 @@ export class Balance {
               .toNumber()
           : 0;
 
-        if (unRealizedPnL < 0) {
-          negativeUnrealizedPnL.add(unRealizedPnL);
-        }
-
-        const initialMargin = volume.div(leverage);
-
-        positionsInitialMargin.add(initialMargin);
-
         const against = side === Side.Buy ? Side.Sell : Side.Buy;
 
-        orderTotalMargin.plus(
-          Math.max(
-            Big(openOrderMap.get(`${instrument}:${side}`)?.unFilledInitialMargin ?? 0)
-              .plus(initialMargin)
-              .toNumber(),
-            Big(
-              openOrderMap.get(`${instrument}:${against}`)?.unFilledInitialMargin ?? 0,
-            ).toNumber(),
-          ),
-        );
+        const directUnFilledMargin = Big(
+          openOrderMap.get(`${instrument}:${side}`)?.unFilledVolume ?? 0,
+        ).div(leverage);
+
+        const oposUnFilledMargin = Big(
+          openOrderMap.get(`${instrument}:${against}`)?.unFilledVolume ?? 0,
+        ).div(leverage);
 
         return {
-          instrument,
-          side,
-          volume: volume.toString(),
-          initialMargin: initialMargin.toString(),
+          negativeUnrealizedPnL:
+            unRealizedPnL < 0
+              ? carry.negativeUnrealizedPnL.add(unRealizedPnL)
+              : carry.negativeUnrealizedPnL,
+          lock: carry.lock.plus(
+            Math.max(
+              Big(initialMargin).plus(directUnFilledMargin).toNumber(),
+              Math.abs(Big(initialMargin).minus(oposUnFilledMargin).toNumber()),
+            ),
+          ),
         };
       },
+      { negativeUnrealizedPnL: Big(0), lock: Big(0) },
     );
 
     return {
@@ -1012,95 +1020,68 @@ export class Balance {
       openOrders: Array.from(openOrderMap.values()).filter(
         ({ unFilledVolume }) => Number(unFilledVolume) > 0,
       ),
-      availableBalance: Big(funding.balance)
-        .plus(negativeUnrealizedPnL)
-        .minus(orderTotalMargin)
-        .minus(positionsInitialMargin)
-        .toString(),
+      availableBalance: String(
+        Math.max(0, Big(funding.balance).plus(negativeUnrealizedPnL).minus(lock).toNumber()),
+      ),
     };
   }
 
   getPower(instrument: string): Power {
     const position = this.positions.get(instrument);
-    const positionInitialMargin = Big(
-      position
-        ? evedexCrypto.utils.toMatcherNumber(
-            Big(position.quantity).mul(position.avgPrice).div(position.leverage),
-          )
-        : "0",
-    );
-    const anotherPositionInitialMargin = Array.from(this.positions.values()).reduce(
-      (sum, p) =>
-        Big(
-          p.instrument !== instrument
-            ? evedexCrypto.utils.toMatcherNumber(
-                Big(p.quantity).plus(p.avgPrice).div(p.leverage).plus(sum),
-              )
-            : sum,
-        ),
-      Big(0),
-    );
+    const availableBalance = this.getAvailableBalance().availableBalance;
+    const ordersUnFilledVolumeBySide = [...this.orders.values()].reduce(
+      (carry, order) => {
+        if (!order) return carry;
 
-    const orderMap = Array.from(
-      this.orders.values(),
-      ({ instrument: instrumentSymbol, side, unFilledQuantity, limitPrice }) => {
-        const positionData = this.positions.get(instrumentSymbol);
-        return {
-          instrument: instrumentSymbol,
-          side,
-          unFilledInitialMargin: Big(
-            position
-              ? evedexCrypto.utils.toMatcherNumber(
-                  Big(unFilledQuantity)
-                    .mul(limitPrice)
-                    .div(positionData?.leverage ?? 1),
-                )
-              : 0,
-          ),
-        };
+        const unFilledVolume =
+          order.type === OrderType.Market
+            ? Big(order.cashQuantity)
+            : Big(order.unFilledQuantity).mul(order.limitPrice);
+        carry[order.side] = unFilledVolume
+          .mul(order.side === Side.Buy ? 1 : -1)
+          .plus(carry[order.side]);
+
+        return carry;
       },
-    ).reduce(
-      (carry, { side, unFilledInitialMargin }) =>
-        carry.set(side, (carry.get(side) ?? Big(0)).plus(unFilledInitialMargin)),
-      new Map<evedexCrypto.utils.Side, Big.Big>(),
+      { [Side.Buy]: Big(0), [Side.Sell]: Big(0) },
     );
 
-    const funding = Big(this.getFundingQuantity(CollateralCurrency.USDT));
-    // Buy
-    const buyPosition =
-      position && position.side === evedexCrypto.utils.Side.Buy
-        ? positionInitialMargin
-        : positionInitialMargin.mul(-1);
-    const buyUnFilledOrder = orderMap.get(evedexCrypto.utils.Side.Buy) ?? Big(0);
-    const buyPower = funding
-      .minus(buyPosition)
-      .minus(buyUnFilledOrder)
-      .minus(anotherPositionInitialMargin);
-
-    // Sell
-    const sellPosition =
-      position && position.side === evedexCrypto.utils.Side.Sell
-        ? positionInitialMargin
-        : positionInitialMargin.mul(-1);
-    const sellUnFilledOrder = orderMap.get(evedexCrypto.utils.Side.Sell) ?? Big(0);
-    const sellPower = funding
-      .minus(sellPosition)
-      .minus(sellUnFilledOrder)
-      .minus(anotherPositionInitialMargin);
+    const positionSignedQty = position
+      ? Big(position?.quantity).mul(position.side === Side.Buy ? 1 : -1)
+      : Big(0);
+    const possibleMin = position
+      ? positionSignedQty.mul(position.avgPrice).plus(ordersUnFilledVolumeBySide[Side.Sell])
+      : Big(0);
+    const possibleMax = position
+      ? positionSignedQty.mul(position.avgPrice).plus(ordersUnFilledVolumeBySide[Side.Buy])
+      : Big(0);
+    const fee = Big(1).minus(this.takerFee);
+    const buyPower = Big(
+      Math.max(
+        0,
+        Big(availableBalance)
+          .mul(position?.leverage ?? 1)
+          .plus(Math.max(possibleMin.abs().toNumber(), possibleMax.abs().toNumber()))
+          .minus(possibleMax)
+          .toNumber(),
+      ),
+    ).mul(fee);
+    const sellPower = Big(
+      Math.min(
+        0,
+        Big(-availableBalance)
+          .mul(position?.leverage ?? 1)
+          .minus(Math.max(possibleMin.abs().toNumber(), possibleMax.abs().toNumber()))
+          .minus(possibleMin)
+          .toNumber(),
+      ),
+    )
+      .abs()
+      .mul(fee);
 
     return {
-      funding: funding.toString(),
-      anotherPositionVolume: anotherPositionInitialMargin.toString(),
-      buy: {
-        position: buyPosition.toString(),
-        unFilledOrder: buyUnFilledOrder.toString(),
-        power: evedexCrypto.utils.toMatcherNumber(buyPower),
-      },
-      sell: {
-        position: sellPosition.toString(),
-        unFilledOrder: sellUnFilledOrder.toString(),
-        power: evedexCrypto.utils.toMatcherNumber(sellPower),
-      },
+      buy: buyPower.toNumber(),
+      sell: sellPower.toNumber(),
     };
   }
 
@@ -1138,6 +1119,7 @@ export class Balance {
     this.gateway.onInstrumentStateUpdate(({ name, updatedAt, markPrice }) =>
       this.updateMarkPrice({ name, updatedAt, markPrice }),
     );
+
     this.gateway.listenInstrumentState();
 
     await Promise.all([
@@ -1147,6 +1129,7 @@ export class Balance {
           user: account.id,
         }),
       ),
+      this.gateway.exchangeGateway.getMarketInfo().then((info) => this.updateFees(info)),
       this.gateway.exchangeGateway
         .getFunding()
         .then((list) => list.forEach((data) => this.updateFunding(data))),
