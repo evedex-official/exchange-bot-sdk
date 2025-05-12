@@ -56,20 +56,20 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@evedex/exchange-api": "^1.0.38",
+    "@evedex/exchange-crypto": "^1.0.12",
     "@types/big.js": "^6.2.2",
     "@types/node": "^20.14.5",
     "@types/ws": "^8.5.14",
-    "@evedex/exchange-api": "^1.0.36",
-    "@evedex/exchange-crypto": "^1.0.12",
     "axios": "^1.8.1",
-    "centrifuge": "^5.3.4",
-    "env-var": "^7.5.0",
-    "dotenv": "^16.4.7",
-    "ws": "^8.18.1",
     "big.js": "^6.2.2",
+    "centrifuge": "^5.3.4",
+    "dotenv": "^16.4.7",
+    "env-var": "^7.5.0",
     "ethers": "^6.13.5",
     "siwe": "^3.0.0",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "ws": "^8.18.1"
   },
   "publishConfig": {
     "access": "public",
