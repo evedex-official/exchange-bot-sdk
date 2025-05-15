@@ -85,6 +85,10 @@ export class Container {
 
     return apiKeyAccount;
   }
+
+  closeWsConnection() {
+    this.gateway().closeWsConnection();
+  }
 }
 
 type ClientConfig = Pick<ContainerConfig, "centrifugeWebSocket" | "wallets" | "apiKeys">;
