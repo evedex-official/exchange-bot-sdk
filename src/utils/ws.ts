@@ -50,6 +50,10 @@ export class CentrifugeClient implements evedexApi.utils.CentrifugeClient {
     return this.centrifuge.connect();
   }
 
+  disconnect() {
+    return this.centrifuge.disconnect();
+  }
+
   assignChannel(name: string, options?: evedexApi.utils.AssignChannelOptions) {
     let channel = this.channels.get(name);
     if (channel) return channel;

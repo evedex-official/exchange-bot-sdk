@@ -136,6 +136,10 @@ export class Gateway {
     return this.httpClient.getSession();
   }
 
+  closeWsConnection() {
+    return this.centrifugeClient.disconnect();
+  }
+
   protected updateInstrumentState(instrumentState: InstrumentState) {
     const updatedAtTimestamp =
       instrumentState.updatedAt instanceof Date
