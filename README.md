@@ -320,6 +320,7 @@ For your convenience there's a test faucet that immediately deposits 1000 USDT t
  - apiKey(apiKeyName: string) - Returns ApiKey
  - [apiKeyAccount(apiKeyName: string) - Returns ApiKeyAccount](#api-key-account)
  - gateway() - Returns Gateway instance (deprecated not recommended to use)
+ - closeWsConnection() - Close centrifuge websocket connection
 
 ### ApiKeyAccount
  - constructor(options: ApiKeyAccountOptions)
