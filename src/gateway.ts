@@ -697,6 +697,13 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.replaceLimitOrder(await this.signReplaceLimitOrder(order));
   }
 
+  async batchReplaceLimitOrder(orderList: ReplaceLimitOrder[]) {
+    const signedOrderList = await Promise.all(
+      orderList.map((order) => this.signReplaceLimitOrder(order)),
+    );
+    return this.exchangeGateway.batchReplaceLimitOrder(signedOrderList);
+  }
+
   private signMarketOrder(order: MarketOrderPayload) {
     return evedexCrypto.signMarketOrder(this.wallet, {
       ...order,
