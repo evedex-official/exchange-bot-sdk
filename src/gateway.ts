@@ -52,7 +52,6 @@ import {
   TpSl,
   type InstrumentState,
   type InstrumentMarkPrice,
-  OrderType,
 } from "./types";
 import Big from "big.js";
 import { generateShortUuid } from "./utils";
@@ -1038,62 +1037,65 @@ export class Balance {
   }
 
   getPower(instrument: string): Power {
-    const position = this.positions.get(instrument);
+    const position = this.positions.get(instrument) ?? {
+      quantity: 0,
+      avgPrice: 0,
+      side: Side.Buy,
+      leverage: 1,
+    };
     const availableBalance = this.getAvailableBalance().availableBalance;
-    const ordersUnFilledVolumeBySide = [...this.orders.values()].reduce(
-      (carry, order) => {
-        if (!order) return carry;
 
-        const unFilledVolume =
-          order.type === OrderType.Market
-            ? Big(order.cashQuantity)
-            : Big(order.unFilledQuantity).mul(order.limitPrice);
-        carry[order.side] = unFilledVolume
-          .mul(order.side === Side.Buy ? 1 : -1)
-          .plus(carry[order.side]);
+    const markPrice = this.markPrices.get(instrument)?.markPrice ?? 0;
 
-        return carry;
-      },
-      { [Side.Buy]: Big(0), [Side.Sell]: Big(0) },
+    const oppositeSide = position.side === Side.Buy ? Side.Sell : Side.Buy;
+
+    const oppositeOrdersUnfilledQuantity = [...this.orders.values()].reduce((carry, order) => {
+      if (!order || order.side !== oppositeSide) return carry;
+
+      carry.plus(order.unFilledQuantity);
+
+      return carry;
+    }, Big(0));
+
+    const closeQty = Math.max(
+      0,
+      Big(position.quantity).minus(oppositeOrdersUnfilledQuantity).toNumber(),
     );
 
-    const positionSignedQty = position
-      ? Big(position?.quantity).mul(position.side === Side.Buy ? 1 : -1)
-      : Big(0);
-    const possibleMin = position
-      ? positionSignedQty.mul(position.avgPrice).plus(ordersUnFilledVolumeBySide[Side.Sell])
-      : Big(0);
-    const possibleMax = position
-      ? positionSignedQty.mul(position.avgPrice).plus(ordersUnFilledVolumeBySide[Side.Buy])
-      : Big(0);
-    const fee = Big(1).minus(this.takerFee);
-    const buyPower = Big(
-      Math.max(
-        0,
-        Big(availableBalance)
-          .mul(position?.leverage ?? 1)
-          .plus(Math.max(possibleMin.abs().toNumber(), possibleMax.abs().toNumber()))
-          .minus(possibleMax)
-          .toNumber(),
-      ),
-    ).mul(fee);
-    const sellPower = Big(
-      Math.min(
-        0,
-        Big(-availableBalance)
-          .mul(position?.leverage ?? 1)
-          .minus(Math.max(possibleMin.abs().toNumber(), possibleMax.abs().toNumber()))
-          .minus(possibleMin)
-          .toNumber(),
-      ),
-    )
-      .abs()
-      .mul(fee);
+    const closeVolumeByPositionPrice = Big(position.avgPrice).mul(closeQty);
 
-    return {
-      buy: buyPower.toNumber(),
-      sell: sellPower.toNumber(),
-    };
+    const closeVolumeByMarkPrice = Big(markPrice).mul(closeQty);
+
+    const fee = Big(position.leverage).mul(this.takerFee).plus(1);
+
+    const oppositeSidePower = closeVolumeByMarkPrice.plus(
+      Big(
+        Math.max(
+          0,
+          Big(availableBalance)
+            .minus(closeVolumeByMarkPrice.mul(this.takerFee))
+            .mul(position.leverage)
+            .plus(closeVolumeByPositionPrice)
+            .toNumber(),
+        ),
+      ).div(fee),
+    );
+
+    const sameSidePower = Big(
+      Math.max(0, Big(availableBalance).mul(position.leverage).toNumber()),
+    ).div(fee);
+
+    if (position.side === Side.Buy) {
+      return {
+        buy: sameSidePower.toNumber(),
+        sell: oppositeSidePower.toNumber(),
+      };
+    } else {
+      return {
+        buy: oppositeSidePower.toNumber(),
+        sell: sameSidePower.toNumber(),
+      };
+    }
   }
 
   // Signals
