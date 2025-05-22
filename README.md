@@ -348,6 +348,7 @@ Order management:
  - updatePosition(query)
  - createLimitOrder(order)
  - replaceLimitOrder(order)
+ - batchReplaceLimitOrder(orderList)
  - createMarketOrder(order)
  - createStopLimitOrder(order)
  - replaceStopLimitOrder(order)
