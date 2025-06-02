@@ -83,6 +83,8 @@ export type TpSlList = evedexApi.utils.ListOf<TpSl>;
 export type TpSlUpdateEvent = evedexApi.utils.TpSl;
 export type Signal<T> = evedexApi.utils.Signal<T>;
 export type AvailableBalanceData = evedexApi.utils.AvailableBalance;
+export type PowerData = evedexApi.utils.Power;
+export type PowerQuery = evedexApi.PowerQuery;
 export type OrderPayload<T extends { id: string }> = Omit<T, "id"> & { id?: string };
 
 export type PositionCloseOrderPayload = OrderPayload<PositionCloseOrder>;
