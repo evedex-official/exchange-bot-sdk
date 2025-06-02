@@ -52,6 +52,9 @@ import {
   TpSl,
   type InstrumentState,
   type InstrumentMarkPrice,
+  OrderType,
+  type PowerQuery,
+  type PowerData,
 } from "./types";
 import Big from "big.js";
 import { generateShortUuid } from "./utils";
@@ -623,6 +626,15 @@ export class ApiKeyAccount {
     };
   }
 
+  /**
+   * Fetches user power for sell and buy sides.
+   *
+   * @returns {Promise<PowerData>} A promise that resolves to the power data.
+   */
+  async fetchPower(query: PowerQuery): Promise<PowerData> {
+    return this.exchangeGateway.getPower(query);
+  }
+
   async fetchOpenOrders(): Promise<OpenedOrdersList> {
     return this.exchangeGateway.getOpenedOrders();
   }
@@ -781,6 +793,10 @@ export interface BalanceOptions {
   account: ApiKeyAccount;
 }
 
+type PositionCalculatingData = Pick<
+  PositionWithoutMetrics,
+  "quantity" | "avgPrice" | "side" | "leverage"
+>;
 export class Balance {
   private _listening = false;
 
@@ -1036,8 +1052,31 @@ export class Balance {
     };
   }
 
+  private getCloseVolumeByPrice(
+    position: PositionCalculatingData,
+    side: Side,
+    price: Big.BigSource,
+    unfilledOrdersQuantity: Big.BigSource,
+    cashQuantity: Big.BigSource,
+  ) {
+    if (side == position.side) return Big(0);
+
+    const unfilledOrdersVolume = Big(unfilledOrdersQuantity).mul(price);
+
+    return Big(
+      Math.max(
+        0,
+        Big(position.quantity)
+          .mul(price)
+          .minus(unfilledOrdersVolume)
+          .minus(cashQuantity)
+          .toNumber(),
+      ),
+    );
+  }
+
   getPower(instrument: string): Power {
-    const position = this.positions.get(instrument) ?? {
+    const position: PositionCalculatingData = this.positions.get(instrument) ?? {
       quantity: 0,
       avgPrice: 0,
       side: Side.Buy,
@@ -1049,26 +1088,47 @@ export class Balance {
 
     const oppositeSide = position.side === Side.Buy ? Side.Sell : Side.Buy;
 
-    const oppositeOrdersUnfilledQuantity = [...this.orders.values()].reduce((carry, order) => {
-      if (!order || order.side !== oppositeSide) return carry;
+    const {
+      unfilledQuantity: oppositeOrdersUnfilledQuantity,
+      cashQuantity: oppositeOrdersCashQuantity,
+    } = [...this.orders.values()].reduce(
+      (carry, order) => {
+        if (!order || order.side !== oppositeSide) return carry;
 
-      carry.plus(order.unFilledQuantity);
+        if (order.type === OrderType.Market && Big(order.cashQuantity).gt(0)) {
+          return {
+            unfilledQuantity: carry.unfilledQuantity,
+            cashQuantity: carry.cashQuantity.plus(order.cashQuantity),
+          };
+        }
 
-      return carry;
-    }, Big(0));
-
-    const closeQty = Math.max(
-      0,
-      Big(position.quantity).minus(oppositeOrdersUnfilledQuantity).toNumber(),
+        return {
+          unfilledQuantity: carry.unfilledQuantity.plus(order.unFilledQuantity),
+          cashQuantity: carry.cashQuantity,
+        };
+      },
+      { unfilledQuantity: Big(0), cashQuantity: Big(0) },
     );
 
-    const closeVolumeByPositionPrice = Big(position.avgPrice).mul(closeQty);
+    const closeVolumeByMarkPrice = this.getCloseVolumeByPrice(
+      position,
+      oppositeSide,
+      markPrice,
+      oppositeOrdersUnfilledQuantity,
+      oppositeOrdersCashQuantity,
+    );
 
-    const closeVolumeByMarkPrice = Big(markPrice).mul(closeQty);
+    const closeVolumeByPositionPrice = this.getCloseVolumeByPrice(
+      position,
+      oppositeSide,
+      position.avgPrice,
+      oppositeOrdersUnfilledQuantity,
+      oppositeOrdersCashQuantity,
+    );
 
     const fee = Big(position.leverage).mul(this.takerFee).plus(1);
 
-    const oppositeSidePower = closeVolumeByMarkPrice.plus(
+    const oppositeSidePower = Big(closeVolumeByMarkPrice).plus(
       Big(
         Math.max(
           0,
