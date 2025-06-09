@@ -447,7 +447,7 @@ export class Gateway {
     const message = this.getSiweMessage(nonce, address, chainId);
 
     const session = await this.authGateway.signInSiwe({
-      address,
+      wallet: address,
       message,
       nonce,
       signature: await wallet.signMessage(message),
