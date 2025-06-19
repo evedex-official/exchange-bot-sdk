@@ -829,6 +829,25 @@ export class Balance {
     this.onFundingUpdate(updated);
   }
 
+  private withdrawTransfers = new Map<string, evedexApi.utils.Transfer>();
+
+  protected updateTransfer(transfer: evedexApi.utils.Transfer) {
+    const currentState = this.withdrawTransfers.get(transfer.id);
+    if (currentState && new Date(currentState.updatedAt) >= new Date(transfer.updatedAt)) {
+      return;
+    }
+
+    if (
+      transfer.status === evedexApi.utils.TransferStatus.Pending &&
+      transfer.type === evedexApi.utils.TransferType.TransferPFuturesToBalance
+    ) {
+      this.withdrawTransfers.set(transfer.id, transfer);
+    } else {
+      this.withdrawTransfers.delete(transfer.id);
+    }
+    this.onTransferUpdate(transfer);
+  }
+
   private positions = new Map<string, PositionWithoutMetrics>();
 
   protected updatePosition(position: PositionWithoutMetrics) {
@@ -916,6 +935,13 @@ export class Balance {
     return String(this.funding.get(currency)?.quantity ?? 0);
   }
 
+  getWithdrawTransferPendingQuantity() {
+    return Array.from(this.withdrawTransfers.values()).reduce(
+      (sum, transfer) => sum.plus(transfer.amount),
+      Big(0),
+    );
+  }
+
   getPositionList() {
     return Array.from(this.positions.values());
   }
@@ -937,6 +963,8 @@ export class Balance {
       currency: CollateralCurrency.USDT,
       balance: this.getFundingQuantity(CollateralCurrency.USDT),
     };
+
+    const withdrawTransfersQuantity = this.getWithdrawTransferPendingQuantity();
 
     const openOrderMap = Array.from(
       this.orders.values(),
@@ -1047,7 +1075,14 @@ export class Balance {
         ({ unFilledVolume }) => Number(unFilledVolume) > 0,
       ),
       availableBalance: String(
-        Math.max(0, Big(funding.balance).plus(negativeUnrealizedPnL).minus(lock).toNumber()),
+        Math.max(
+          0,
+          Big(funding.balance)
+            .minus(withdrawTransfersQuantity)
+            .plus(negativeUnrealizedPnL)
+            .minus(lock)
+            .toNumber(),
+        ),
       ),
     };
   }
@@ -1163,6 +1198,8 @@ export class Balance {
 
   public readonly onFundingUpdate = evedexApi.utils.signal<evedexApi.utils.Funding>();
 
+  public readonly onTransferUpdate = evedexApi.utils.signal<evedexApi.utils.Transfer>();
+
   public readonly onPositionUpdate = evedexApi.utils.signal<evedexApi.utils.Position>();
 
   public readonly onOrderUpdate = evedexApi.utils.signal<evedexApi.utils.OpenedOrder>();
@@ -1183,6 +1220,8 @@ export class Balance {
     );
     this.gateway.wsGateway.listenFunding(listenQuery);
     this.gateway.wsGateway.onPositionUpdate((position) => this.updatePosition(position));
+    this.gateway.wsGateway.listenTransfer(listenQuery);
+    this.gateway.wsGateway.onTransferUpdate((transfer) => this.updateTransfer(transfer));
     this.gateway.wsGateway.listenPositions(listenQuery);
     this.gateway.wsGateway.onOrderUpdate((order) => this.updateOrder(order));
     this.gateway.wsGateway.listenOrders(listenQuery);
@@ -1207,6 +1246,12 @@ export class Balance {
         .getFunding()
         .then((list) => list.forEach((data) => this.updateFunding(data))),
       this.gateway.exchangeGateway
+        .getTransfers({
+          type: evedexApi.utils.TransferType.TransferPFuturesToBalance,
+          status: evedexApi.utils.TransferStatus.Pending,
+        })
+        .then(({ list }) => list.forEach((data) => this.updateTransfer(data))),
+      this.gateway.exchangeGateway
         .getPositions()
         .then(({ list }) => list.forEach((data) => this.updatePosition(data))),
       this.gateway.exchangeGateway
@@ -1227,6 +1272,8 @@ export class Balance {
     this.gateway.wsGateway.unListenAccount(unListenQuery);
     this.gateway.wsGateway.unListenFunding(unListenQuery);
     this.funding.clear();
+    this.gateway.wsGateway.unListenTransfer(unListenQuery);
+    this.withdrawTransfers.clear();
     this.gateway.wsGateway.unListenPositions(unListenQuery);
     this.positions.clear();
     this.gateway.wsGateway.unListenOrders(unListenQuery);
