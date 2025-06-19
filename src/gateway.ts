@@ -708,11 +708,19 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.replaceLimitOrder(await this.signReplaceLimitOrder(order));
   }
 
+  // @deprecated
   async batchReplaceLimitOrder(orderList: ReplaceLimitOrder[]) {
     const signedOrderList = await Promise.all(
       orderList.map((order) => this.signReplaceLimitOrder(order)),
     );
     return this.exchangeGateway.batchReplaceLimitOrder(signedOrderList);
+  }
+
+  async batchReplaceInstrumentLimitOrder(instrument: string, orderList: ReplaceLimitOrder[]) {
+    const signedOrderList = await Promise.all(
+      orderList.map((order) => this.signReplaceLimitOrder(order)),
+    );
+    return this.exchangeGateway.batchReplaceInstrumentLimitOrder(instrument, signedOrderList);
   }
 
   private signMarketOrder(order: MarketOrderPayload) {
