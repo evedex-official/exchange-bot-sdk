@@ -773,9 +773,13 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.createTpSl(await this.signCreateTpSl(tpsl));
   }
 
+  // TODO: check sign payload before send request
+
   updateTpSl(query: TpSlUpdateQuery) {
     return this.exchangeGateway.updateTpSl(query);
   }
+
+  // TODO: check sign payload before send request
 
   cancelTpSl(query: TpSlCancelQuery) {
     return this.exchangeGateway.cancelTpSl(query);
