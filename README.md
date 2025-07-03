@@ -1306,7 +1306,8 @@ const createLimitOrderResult = await walletAccount.createLimitOrder(limitOrderPa
   "createdAt": "2022-01-01T12:00:00.000Z",
   "updatedAt": "2022-01-15T14:30:00.000Z",
   "triggeredAt": null,
-  "group": "manually"
+  "group": "manually",
+  "exchangeRequestId": "1"
 }
 ```
 
@@ -1361,7 +1362,10 @@ const limitOrderPayloads: LimitOrderPayload[] = [
     limitPrice: 101000,
   },
 ];
-const batchCreateLimitOrderResult = await walletAccount.batchCreateLimitOrder(instrument, limitOrderPayloads);
+const batchCreateLimitOrderResult = await walletAccount.batchCreateLimitOrder(
+  instrument,
+  limitOrderPayloads,
+);
 ```
 
 <summary>batchCreateLimitOrder result example</summary>
@@ -1448,7 +1452,8 @@ const replaceLimitOrderResult = await walletAccount.replaceLimitOrder(replaceLim
   "createdAt": "2022-01-01T12:00:00.000Z",
   "updatedAt": "2022-01-15T14:30:00.000Z",
   "triggeredAt": null,
-  "group": "manually"
+  "group": "manually",
+  "exchangeRequestId": "1"
 }
 ```
 
@@ -1597,7 +1602,8 @@ const createMarketOrderResult = await walletAccount.createMarketOrder(marketOrde
   "createdAt": "2022-01-01T12:00:00.000Z",
   "updatedAt": "2022-01-15T14:30:00.000Z",
   "triggeredAt": null,
-  "group": "manually"
+  "group": "manually",
+  "exchangeRequestId": "1"
 }
 ```
 
@@ -1686,7 +1692,8 @@ const createStopLimitOrderResult = await walletAccount.createStopLimitOrder(limi
   "createdAt": "2022-01-01T12:00:00.000Z",
   "updatedAt": "2022-01-15T14:30:00.000Z",
   "triggeredAt": null,
-  "group": "manually"
+  "group": "manually",
+  "exchangeRequestId": "1"
 }
 ```
 
@@ -1759,7 +1766,8 @@ const replaceLimitOrderResult = await walletAccount.replaceStopLimitOrder(replac
   "createdAt": "2022-01-01T12:00:00.000Z",
   "updatedAt": "2022-01-15T14:30:00.000Z",
   "triggeredAt": null,
-  "group": "manually"
+  "group": "manually",
+  "exchangeRequestId": "1"
 }
 ```
 
@@ -2905,7 +2913,8 @@ balance.onOrderUpdate((orderState) => console.log(orderState));
     }
   ],
   "updatedAt": "2022-01-01T12:00:00.000Z",
-  "cashQuantity": 0
+  "cashQuantity": 0,
+  "exchangeRequestId": "1"
 }
 ```
 
