@@ -56,7 +56,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@evedex/exchange-api": "^1.0.48",
+    "@evedex/exchange-api": "^1.0.49",
     "@evedex/exchange-crypto": "^1.0.12",
     "@types/big.js": "^6.2.2",
     "@types/node": "^20.14.5",
