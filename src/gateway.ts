@@ -55,6 +55,7 @@ import {
   OrderType,
   type PowerQuery,
   type PowerData,
+	type LimitOrderBatchCreateResult,
 } from "./types";
 import Big from "big.js";
 import { generateShortUuid } from "./utils";
@@ -698,6 +699,16 @@ export class WalletAccount extends SessionAccount {
 
   async createLimitOrder(order: LimitOrderPayload) {
     return this.exchangeGateway.createLimitOrder(await this.signLimitOrder(order));
+  }
+
+  async batchCreateLimitOrder(
+    instrument: string,
+    orders: LimitOrderPayload[],
+  ): Promise<LimitOrderBatchCreateResult[]> {
+    return this.exchangeGateway.batchCreateLimitOrder(
+      instrument,
+      await Promise.all(orders.map((order) => this.signLimitOrder(order))),
+    );
   }
 
   private signReplaceLimitOrder(order: ReplaceLimitOrder) {

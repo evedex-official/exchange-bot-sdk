@@ -1224,7 +1224,7 @@ const updatePositionResult = await walletAccount.updatePosition(positionCloseOrd
 
 </details>
  
- - `createLimitOrder(order)` — method used to create a signed limit order and sends it to the exchange gateway.
+- `createLimitOrder(order)` — method used to create a signed limit order and sends it to the exchange gateway.
 
 <details>
 <summary>createLimitOrder(order) method usage example</summary>
@@ -1308,6 +1308,76 @@ const createLimitOrderResult = await walletAccount.createLimitOrder(limitOrderPa
   "triggeredAt": null,
   "group": "manually"
 }
+```
+
+</details>
+
+- `batchCreateLimitOrder(orders)` — method used to create a signed limit order and sends it to the exchange gateway.
+
+<details>
+<summary>batchCreateLimitOrder(orders) method usage example</summary>
+
+```typescript
+import { WebSocket } from "ws";
+import {
+  Environment,
+  Container,
+  type LimitOrderPayload,
+  Side,
+  TpSlType,
+} from "@evedex/exchange-bot-sdk";
+
+const config = {
+  environment: Environment.DEV,
+  centrifugeWebSocket: WebSocket,
+  wallets: {
+    myWallet: {
+      privateKey: "your-private-key",
+    },
+  },
+  apiKeys: {
+    mainApiKey: {
+      apiKey: "your-api-key",
+    },
+  },
+};
+
+const devContainer = new Container(config);
+const walletAccount = devContainer.account("myWallet");
+const instrument = "BTCUSDT";
+const limitOrderPayloads: LimitOrderPayload[] = [
+  {
+    instrument,
+    side: Side.Buy,
+    leverage: 10,
+    quantity: 0.01,
+    limitPrice: 100000,
+  },
+  {
+    instrument,
+    side: Side.Buy,
+    leverage: 10,
+    quantity: 0.02,
+    limitPrice: 101000,
+  },
+];
+const batchCreateLimitOrderResult = await walletAccount.batchCreateLimitOrder(instrument, limitOrderPayloads);
+```
+
+<summary>batchCreateLimitOrder result example</summary>
+
+```json
+[
+  {
+    "orderId": "a6f1c4e5-3b7d-42e6-b6b3-a4c65a6d43e7",
+    "success": true
+  },
+  {
+    "orderId": "a6f1c4e5-3b7d-42e6-b6b3-a4c65a6d43e8",
+    "success": false,
+    "failReason": "Insufficient funds"
+  }
+]
 ```
 
 </details>

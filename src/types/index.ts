@@ -70,6 +70,7 @@ export type MarketInfo = evedexApi.utils.MarketInfo;
 export type OpenedOrdersList = OpenedOrder[];
 export type OpenedOrder = evedexApi.utils.OpenedOrder;
 export type Position = evedexApi.utils.PositionMetrics;
+export type LimitOrderBatchCreateResult = evedexApi.utils.LimitOrderBatchCreateResult;
 export interface MarketDepthQuery extends Omit<evedexApi.MarketDepthQuery, "roundPrice"> {
   roundPrice?: OrderBookRoundPrices;
 }
