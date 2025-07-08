@@ -55,7 +55,7 @@ import {
   OrderType,
   type PowerQuery,
   type PowerData,
-	type LimitOrderBatchCreateResult,
+  type LimitOrderBatchCreateResult,
 } from "./types";
 import Big from "big.js";
 import { generateShortUuid } from "./utils";
@@ -445,13 +445,17 @@ export class Gateway {
       wallet.getChainId(),
     ]);
 
-    const message = this.getSiweMessage(nonce, address, chainId);
+    const { message, signature } = await evedexCrypto.signAuthMessage(wallet, {
+      nonce,
+      address,
+      chainId,
+    });
 
     const session = await this.authGateway.signInSiwe({
       wallet: address,
       message,
       nonce,
-      signature: await wallet.signMessage(message),
+      signature,
     });
 
     this.httpClient.setSession(session.token);
