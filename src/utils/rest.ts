@@ -64,7 +64,7 @@ export class RestClient implements evedexApi.utils.HttpClient {
             request: {
               url: request.url,
               method: request.method,
-              headers: request.headers,
+              headers: JSON.parse(JSON.stringify(request.headers)),
             },
             response: {
               headers: JSON.parse(JSON.stringify(e.response.headers)),
