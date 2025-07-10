@@ -60,7 +60,12 @@ export class RestClient implements evedexApi.utils.HttpClient {
         throw new evedexApi.utils.RequestError(e.response.data?.error ?? e.response.statusText, {
           status: e.response.status,
           statusText: e.response.statusText,
-          data: e.response.data,
+          data: {
+            ...e.response.data,
+            url: request.url,
+            method: request.method,
+            headers: request.headers,
+          },
         });
       }
 
