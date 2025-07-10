@@ -61,10 +61,15 @@ export class RestClient implements evedexApi.utils.HttpClient {
           status: e.response.status,
           statusText: e.response.statusText,
           data: {
-            url: request.url,
-            method: request.method,
-            headers: Object.fromEntries(Object.entries(e.response.headers)),
-            data: e.response.data,
+            request: {
+              url: request.url,
+              method: request.method,
+              headers: request.headers,
+            },
+            response: {
+              headers: JSON.parse(JSON.stringify(e.response.headers)),
+              data: e.response.data,
+            },
           },
         });
       }
