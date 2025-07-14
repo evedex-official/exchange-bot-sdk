@@ -1208,17 +1208,12 @@ const updatePositionResult = await walletAccount.updatePosition(positionCloseOrd
 
 ```json
 {
-  "id": "a8f5e2b4-4c9a-4e3a-8f6d-5b4c7a9d2e1f",
-  "user": "a8f5e2b4-4c9a-4e3a-8f6d-5b4c7a9d2e1n",
   "instrument": "BTCUSDT",
   "side": "BUY",
   "quantity": 10,
   "avgPrice": 100.0,
-  "fundingRate": 0.01,
   "leverage": 20,
   "maintenanceMargin": 1000.0,
-  "createdAt": "2023-02-20T14:30:00.000Z",
-  "updatedAt": "2023-02-20T14:30:00.000Z"
 }
 ```
 
@@ -1276,6 +1271,8 @@ const limitOrderPayload: LimitOrderPayload = {
       price: 80000,
     },
   ],
+  // Optional flag to use for POST only limit orders
+  postOnly: true
 };
 const createLimitOrderResult = await walletAccount.createLimitOrder(limitOrderPayload);
 ```
@@ -1353,6 +1350,7 @@ const limitOrderPayloads: LimitOrderPayload[] = [
     leverage: 10,
     quantity: 0.01,
     limitPrice: 100000,
+    postOnly: true
   },
   {
     instrument,
