@@ -28,7 +28,7 @@ export const GatewayParamsMap = new Map<Environment, GatewayParams>([
     Environment.DEV,
     {
       exchangeURI: "https://exchange-api.evedex.tech",
-      authURI: "https://auth.evedex.tech",
+      authURI: "https://auth-api.evedex.tech",
       centrifugeURI: "wss://ws.evedex.tech/connection/websocket",
       centrifugePrefix: "futures-perp-dev",
       chainId: "16182",
@@ -38,7 +38,7 @@ export const GatewayParamsMap = new Map<Environment, GatewayParams>([
     Environment.DEMO,
     {
       exchangeURI: "https://demo-exchange-api.evedex.com",
-      authURI: "https://auth.evedex.com",
+      authURI: "https://auth-api.evedex.com",
       centrifugeURI: "wss://ws.evedex.com/connection/websocket",
       centrifugePrefix: "futures-perp-demo",
       chainId: "16182",
@@ -48,7 +48,7 @@ export const GatewayParamsMap = new Map<Environment, GatewayParams>([
     Environment.PROD,
     {
       exchangeURI: "https://exchange-api.evedex.com",
-      authURI: "https://auth.evedex.com",
+      authURI: "https://auth-api.evedex.com",
       centrifugeURI: "wss://ws.evedex.com/connection/websocket",
       centrifugePrefix: "futures-perp",
       chainId: "161803",
