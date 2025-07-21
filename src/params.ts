@@ -27,7 +27,7 @@ export const GatewayParamsMap = new Map<Environment, GatewayParams>([
   [
     Environment.DEV,
     {
-      exchangeURI: "https://api-exchange.evedex.tech",
+      exchangeURI: "https://exchange-api.evedex.tech",
       authURI: "https://auth-api.evedex.tech",
       centrifugeURI: "wss://ws.evedex.tech/connection/websocket",
       centrifugePrefix: "futures-perp-dev",
