@@ -1420,6 +1420,8 @@ const replaceLimitOrderPayload: ReplaceLimitOrder = {
   orderId: "a8f5e2b4-4c9a-4e3a-8f6d-5b4c7a9d2e1f",
   quantity: 0.02,
   limitPrice: 105000,
+  // Optional flag to use for POST only limit orders
+  postOnly: true
 };
 const replaceLimitOrderResult = await walletAccount.replaceLimitOrder(replaceLimitOrderPayload);
 ```
@@ -1496,6 +1498,8 @@ const replaceLimitOrderPayloads: ReplaceLimitOrder[] = [
     orderId: "a8f5e2b4-4c9a-4e3a-8f6d-5b4c7a9d2e1f",
     quantity: 0.02,
     limitPrice: 105000,
+    // Optional flag to use for POST only limit orders
+    postOnly: true	
   },
   {
     orderId: "a8f5e2b4-4c9a-4e3a-8f6d-5b4c7a9d2e1n",
