@@ -58,7 +58,7 @@ import {
   type LimitOrderBatchCreateResult,
 } from "./types";
 import Big from "big.js";
-import { generateShortUuid } from "./utils";
+import { generateOrderIdV2, generateShortUuid } from "./utils";
 
 export interface GatewayOptions {
   httpClient?:
@@ -686,8 +686,19 @@ export class WalletAccount extends SessionAccount {
     });
   }
 
+  private signClosePositionOrderV2(order: PositionCloseOrderPayload) {
+    return evedexCrypto.signPositionCloseOrder(this.wallet, {
+      ...order,
+      id: order.id ?? generateOrderIdV2(),
+    });
+  }
+
   async createClosePositionOrder(order: PositionCloseOrderPayload) {
     return this.exchangeGateway.closePosition(await this.signClosePositionOrder(order));
+  }
+
+  async createClosePositionOrderV2(order: PositionCloseOrderPayload) {
+    return this.exchangeGateway.closePositionV2(await this.signClosePositionOrderV2(order));
   }
 
   updatePosition(query: PositionUpdateQuery) {
@@ -701,8 +712,19 @@ export class WalletAccount extends SessionAccount {
     });
   }
 
+  private signLimitOrderV2(order: LimitOrderPayload) {
+    return evedexCrypto.signLimitOrder(this.wallet, {
+      ...order,
+      id: order.id ?? generateOrderIdV2(),
+    });
+  }
+
   async createLimitOrder(order: LimitOrderPayload) {
     return this.exchangeGateway.createLimitOrder(await this.signLimitOrder(order));
+  }
+
+  async createLimitOrderV2(order: LimitOrderPayload) {
+    return this.exchangeGateway.createLimitOrderV2(await this.signLimitOrderV2(order));
   }
 
   async batchCreateLimitOrder(
@@ -712,6 +734,16 @@ export class WalletAccount extends SessionAccount {
     return this.exchangeGateway.batchCreateLimitOrder(
       instrument,
       await Promise.all(orders.map((order) => this.signLimitOrder(order))),
+    );
+  }
+
+  async batchCreateLimitOrderV2(
+    instrument: string,
+    orders: LimitOrderPayload[],
+  ): Promise<LimitOrderBatchCreateResult[]> {
+    return this.exchangeGateway.batchCreateLimitOrderV2(
+      instrument,
+      await Promise.all(orders.map((order) => this.signLimitOrderV2(order))),
     );
   }
 
@@ -745,8 +777,19 @@ export class WalletAccount extends SessionAccount {
     });
   }
 
+  private signMarketOrderV2(order: MarketOrderPayload) {
+    return evedexCrypto.signMarketOrder(this.wallet, {
+      ...order,
+      id: order.id ?? generateOrderIdV2(),
+    });
+  }
+
   async createMarketOrder(order: MarketOrderPayload) {
     return this.exchangeGateway.createMarketOrder(await this.signMarketOrder(order));
+  }
+
+  async createMarketOrderV2(order: MarketOrderPayload) {
+    return this.exchangeGateway.createMarketOrderV2(await this.signMarketOrderV2(order));
   }
 
   private signStopLimitOrder(order: StopLimitOrderPayload) {
@@ -756,8 +799,19 @@ export class WalletAccount extends SessionAccount {
     });
   }
 
+  private signStopLimitOrderV2(order: StopLimitOrderPayload) {
+    return evedexCrypto.signStopLimitOrder(this.wallet, {
+      ...order,
+      id: order.id ?? generateOrderIdV2(),
+    });
+  }
+
   async createStopLimitOrder(order: StopLimitOrderPayload) {
     return this.exchangeGateway.createStopLimitOrder(await this.signStopLimitOrder(order));
+  }
+
+  async createStopLimitOrderV2(order: StopLimitOrderPayload) {
+    return this.exchangeGateway.createStopLimitOrderV2(await this.signStopLimitOrderV2(order));
   }
 
   private signReplaceStopLimitOrder(order: ReplaceStopLimitOrder) {
