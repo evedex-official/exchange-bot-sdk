@@ -1277,6 +1277,8 @@ export class Balance {
   // Signals
   public readonly onAccountUpdate = evedexApi.utils.signal<evedexApi.utils.User>();
 
+  public readonly onOrderFillsUpdate = evedexApi.utils.signal<evedexApi.utils.OrderFill>();
+
   public readonly onFundingUpdate = evedexApi.utils.signal<evedexApi.utils.Funding>();
 
   public readonly onTransferUpdate = evedexApi.utils.signal<evedexApi.utils.Transfer>();
@@ -1296,6 +1298,8 @@ export class Balance {
     const listenQuery = { userExchangeId: this.account.exchangeAccount.exchangeId };
     this.gateway.wsGateway.onAccountUpdate((account) => this.updateAccount(account));
     this.gateway.wsGateway.listenAccount(listenQuery);
+    this.gateway.wsGateway.onOrderFills((orderFill) => this.onOrderFillsUpdate(orderFill));
+    this.gateway.wsGateway.listenOrderFills(listenQuery);
     this.gateway.wsGateway.onFundingUpdate((funding) =>
       this.updateFunding({ ...funding, quantity: Number(funding.quantity) }),
     );
@@ -1352,6 +1356,7 @@ export class Balance {
     const unListenQuery = { userExchangeId: this.account.exchangeAccount.exchangeId };
     this.gateway.wsGateway.unListenAccount(unListenQuery);
     this.gateway.wsGateway.unListenFunding(unListenQuery);
+    this.gateway.wsGateway.unListenOrderFills(unListenQuery);
     this.funding.clear();
     this.gateway.wsGateway.unListenTransfer(unListenQuery);
     this.withdrawTransfers.clear();

@@ -167,6 +167,7 @@ Signals are disgned for handling events:
 - onPositionUpdate
 - onOrderUpdate
 - onTpSlUpdate
+- onOrderFillsUpdate
 
 <details>
 <summary>Sample</summary>
@@ -3020,6 +3021,58 @@ balance.onMarkPriceUpdate((markPriceState) => console.log(markPriceState));
   "markPrice": 50000,
   "updatedAt": "2022-01-01T12:00:00.000Z",
   "name": "BTCUSDT"
+}
+```
+
+</details>
+
+- `onOrderFillsUpdate()` — signal of updating user order fills data
+
+<details>
+<summary>onOrderFillsUpdate() usage example</summary>
+
+```typescript
+import { WebSocket } from "ws";
+import { Environment, Container } from "@evedex/exchange-bot-sdk";
+
+const config = {
+  environment: Environment.DEV,
+  centrifugeWebSocket: WebSocket,
+  wallets: {
+    myWallet: {
+      privateKey: "your-private-key",
+    },
+  },
+  apiKeys: {
+    mainApiKey: {
+      apiKey: "your-api-key",
+    },
+  },
+};
+
+const devContainer = new Container(config);
+
+const walletAccount = await devContainer.account("myWallet");
+
+const balance = walletAccount.getBalance();
+
+await balance.listen();
+
+balance.onOrderFillsUpdate((orderFillsState) => console.log(orderFillsState));
+```
+
+<summary>onOrderFillsUpdate() event payload example</summary>
+
+```json
+{
+  "executionId": "1234567890",
+  "instrument": "BTCUSDT",
+  "side": "BUY",
+  "fillQuantity": 1.5,
+  "fillPrice": 35000.0,
+  "createdAt": "2022-07-25T14:30:00.000Z",
+  "makerTakerFlag": "TAKER",
+  "orderId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b9d4c22"
 }
 ```
 
