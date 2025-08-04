@@ -3072,7 +3072,7 @@ balance.onOrderFillsUpdate((orderFillsState) => console.log(orderFillsState));
   "fillPrice": 35000.0,
   "createdAt": "2022-07-25T14:30:00.000Z",
   "makerTakerFlag": "TAKER",
-  "orderId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b9d4c22"
+  "orderId": "00012:123e4567e89b12d3a45642665544"
 }
 ```
 
