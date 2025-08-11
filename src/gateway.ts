@@ -246,6 +246,9 @@ export class Gateway {
         maxPrice,
         fatFingerPriceProtection,
         slippageLimit,
+        trading,
+        visibility,
+        marketState,
         updatedAt,
       }) => {
         this.updateInstrumentState({
@@ -263,6 +266,9 @@ export class Gateway {
           maxPrice,
           fatFingerPriceProtection,
           slippageLimit,
+          trading,
+          visibility,
+          marketState,
           updatedAt,
         });
       },
