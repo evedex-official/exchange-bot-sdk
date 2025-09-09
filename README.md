@@ -2,7 +2,7 @@
 
 [TOC]
 
-This SDK enables programmatic access to [Evedex exchange](https://demo-exchange.evedex.com/en-US/) services, including market data streaming, account metrics, and order management.
+This SDK enables programmatic access to [Evedex exchange](https://exchange.evedex.com/) services, including market data streaming, account metrics, and order management.
 
 - Integration sdk with Evedex REST APIs and WebSockets.
 - TypeScript support (with type declarations for most API requests & responses).
@@ -335,7 +335,7 @@ main().catch((e) => console.error(e));
 
 For your convenience there's a test faucet that immediately deposits 1000 USDT to your smart-account in Development environment.
 
-1. The first run happens automatically when you register on https://demo-exchange.evedex.com
+1. The first run happens automatically when you register on https://exchange.evedex.com
 1. After that you can once in a while request test funds using the button "Request Demo Funds" in the bottom-right of the Exchange screen.
 
 ## Methods tree
@@ -472,9 +472,9 @@ const userApiKey = devContainer.apiKey("mainApiKey"); // returns 'your-api-key'
 ```
 
 </details>
- 
- - apiKeyAccount(apiKeyName: string) — Returns [ApiKeyAccount instance](#api-key-account). 
- 
+
+ - apiKeyAccount(apiKeyName: string) — Returns [ApiKeyAccount instance](#api-key-account).
+
  <details>
 <summary>apiKeyAccount method usage example</summary>
 
@@ -502,7 +502,7 @@ const apiKeyAccount = devContainer.apiKeyAccount("mainApiKey");
 ```
 
  </details>
- 
+
  - gateway() — Returns Gateway instance (deprecated, not recommended to use). Returns a `Gateway` class instance.
  - closeWsConnection() — Close centrifuge websocket connection.
 
@@ -1104,9 +1104,9 @@ const withdrawResult = await walletAccount.createWithdraw(withdrawQueryParams);
 ```
 
 </details>
- 
+
  - `createClosePositionOrder(order)` — method used to creates a signed close position order and sends it to the exchange gateway
- 
+
 <details>
 <summary>createWithdraw method usage example</summary>
 
@@ -1170,9 +1170,9 @@ const closePositionResult = await walletAccount.createClosePositionOrder(positio
 ```
 
 </details>
- 
+
  - `updatePosition(query)` — method used to update an open position leverage.
- 
+
 <details>
 <summary>createWithdraw method usage example</summary>
 
@@ -1219,7 +1219,7 @@ const updatePositionResult = await walletAccount.updatePosition(positionCloseOrd
 ```
 
 </details>
- 
+
 - `createLimitOrder(order)` — method used to create a signed limit order and sends it to the exchange gateway.
 
 <details>
@@ -1384,9 +1384,9 @@ const batchCreateLimitOrderResult = await walletAccount.batchCreateLimitOrder(
 ```
 
 </details>
- 
+
 - `replaceLimitOrder(order)` — method used to update (replace) an open limit order.
- 
+
 <details>
 <summary>replaceLimitOrder(order) method usage example</summary>
 
@@ -1459,7 +1459,7 @@ const replaceLimitOrderResult = await walletAccount.replaceLimitOrder(replaceLim
 ```
 
 </details>
- 
+
 - `batchReplaceLimitOrder(orderList)` — method used to batch replace open limit orders. **Deprecated, not recommmended to use. Instead use batchReplaceInstrumentLimitOrder method**
 
 - `batchReplaceInstrumentLimitOrder(instrument, orderList)` — method used to batch replace open limit orders.
@@ -1500,7 +1500,7 @@ const replaceLimitOrderPayloads: ReplaceLimitOrder[] = [
     quantity: 0.02,
     limitPrice: 105000,
     // Optional flag to use for POST only limit orders
-    postOnly: true	
+    postOnly: true
   },
   {
     orderId: "a8f5e2b4-4c9a-4e3a-8f6d-5b4c7a9d2e1n",
@@ -1521,7 +1521,7 @@ const batchReplaceInstrumentLimitOrderResult = await walletAccount.batchReplaceI
 ```
 
 </details>
- 
+
 - `createMarketOrder(order)` — method used to create a signed market order.
 
 <details>
@@ -1611,9 +1611,9 @@ const createMarketOrderResult = await walletAccount.createMarketOrder(marketOrde
 ```
 
 </details>
- 
+
  - `createStopLimitOrder(order)` — method used to create a stop-limit order.
- 
+
 <details>
 <summary>createStopLimitOrder(order) method usage example</summary>
 
@@ -1701,7 +1701,7 @@ const createStopLimitOrderResult = await walletAccount.createStopLimitOrder(limi
 ```
 
 </details>
- 
+
 - `replaceStopLimitOrder(order)` — method used to replace a stop-limit order.
 
 <details>
@@ -1815,7 +1815,7 @@ const cancelOrderResult = await walletAccount.cancelOrder(cancelOrderPayload);
 ```
 
 </details>
- 
+
 - `massCancelUserOrdersById(query)` — method used to cancel user orders by ids.
 
 <details>
@@ -1963,7 +1963,7 @@ const createTpSlResult = await walletAccount.createTpSl(tpslPayload);
 ```
 
 </details>
- 
+
 - `updateTpSl(query)` — method used to update Take Profit/Stop Loss orders.
 
 <details>
@@ -2332,9 +2332,9 @@ const positions = balance.getPositionList();
 ```
 
 </details>
- 
+
  - `getPosition(instrument)` — method that returns user position by instrument.
- 
+
 <details>
 <summary>getPosition(instrument) usage example</summary>
 
@@ -2387,7 +2387,7 @@ const position = balance.getPosition("BTCUSDT");
 ```
 
 </details>
- 
+
 - `getOrderList()` — method that returns the list of existing orders.
 
 <details>
@@ -2450,7 +2450,7 @@ const orderList = balance.getOrderList();
 ```
 
 </details>
- 
+
  - `getTpSlList()` — method that returns existing Take Profit/Stop Loss orders.
 
 <details>
@@ -2585,9 +2585,9 @@ const availableBalance = balance.getAvailableBalance();
 ```
 
 </details>
- 
+
  - `getPower(instrument)` — method that returns current buying and selling power (the maximum available order value).
- 
+
 <details>
 <summary>getPower(instrument) usage example</summary>
 

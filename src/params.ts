@@ -36,22 +36,12 @@ export const GatewayParamsMap = new Map<Environment, GatewayParams>([
     },
   ],
   [
-    Environment.BETA,
+    Environment.DEMO,
     {
-      exchangeURI: "https://exchange-api.evedex.io",
+      exchangeURI: "https://trading-api.evedex.io",
       authURI: "https://auth-api.evedex.io",
       centrifugeURI: "wss://ws.evedex.io/connection/websocket",
       centrifugePrefix: "futures-perp-beta",
-      chainId: "16182",
-    },
-  ],
-  [
-    Environment.DEMO,
-    {
-      exchangeURI: "https://demo-exchange-api.evedex.com",
-      authURI: "https://auth-api.evedex.com",
-      centrifugeURI: "wss://ws.evedex.com/connection/websocket",
-      centrifugePrefix: "futures-perp-demo",
       chainId: "16182",
     },
   ],
