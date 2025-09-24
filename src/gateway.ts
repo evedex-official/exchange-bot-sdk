@@ -92,13 +92,19 @@ export class Gateway {
 
   public readonly onRecover = evedexApi.utils.signal<CentrifugeSubscription>();
 
-  constructor(public readonly options: Readonly<GatewayOptions>) {
+  constructor(
+    public readonly options: Readonly<GatewayOptions>,
+    isDebug = false,
+  ) {
     this.httpClient =
       options.httpClient instanceof RestClient
         ? options.httpClient
-        : new RestClient({
-            session: options.httpClient?.jwt,
-          });
+        : new RestClient(
+            {
+              session: options.httpClient?.jwt,
+            },
+            isDebug,
+          );
     this.authGateway = new evedexApi.AuthRestGateway({
       authURI: options.authURI,
       httpClient: this.httpClient,
