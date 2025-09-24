@@ -17,7 +17,10 @@ export interface RestClientOptions {
 export class RestClient implements evedexApi.utils.HttpClient {
   private session?: evedexApi.utils.JWT | evedexApi.utils.RefreshedJWT | evedexApi.utils.ApiKey;
 
-  constructor(private readonly options: RestClientOptions) {
+  constructor(
+    private readonly options: RestClientOptions,
+    readonly isDebug = false,
+  ) {
     this.session = options.session;
   }
 
@@ -43,12 +46,27 @@ export class RestClient implements evedexApi.utils.HttpClient {
 
   async request<Data>(request: evedexApi.utils.Request): Promise<evedexApi.utils.Response<Data>> {
     try {
+      if (this.isDebug) {
+        console.debug(`[RestClient] Request: ${request.method} ${request.url}`, {
+          url: request.url,
+          method: request.method,
+          data: request.body,
+        });
+      }
       const res = await axios.request({
         url: request.url,
         method: request.method,
         headers: request.headers,
         data: request.body,
       });
+
+      if (this.isDebug) {
+        console.debug(`[RestClient] Response: ${request.method} ${request.url}`, {
+          status: res.status,
+          statusText: res.statusText,
+          data: res.data,
+        });
+      }
 
       return {
         status: res.status,

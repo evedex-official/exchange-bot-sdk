@@ -33,20 +33,26 @@ export class Container {
 
   readonly gateway: Factory<Gateway> = singleton(
     () =>
-      new Gateway({
-        authURI: this.gatewayParams.authURI,
-        exchangeURI: this.gatewayParams.exchangeURI,
-        centrifuge: {
-          uri: this.gatewayParams.centrifugeURI,
-          prefix: this.gatewayParams.centrifugePrefix,
-          websocket: this.config.centrifugeWebSocket,
+      new Gateway(
+        {
+          authURI: this.gatewayParams.authURI,
+          exchangeURI: this.gatewayParams.exchangeURI,
+          centrifuge: {
+            uri: this.gatewayParams.centrifugeURI,
+            prefix: this.gatewayParams.centrifugePrefix,
+            websocket: this.config.centrifugeWebSocket,
+          },
         },
-      }),
+        this.isDebug,
+      ),
   );
 
   private readonly gatewayParams: GatewayParams;
 
-  constructor(public config: ContainerConfig) {
+  constructor(
+    public config: ContainerConfig,
+    readonly isDebug = false,
+  ) {
     this.gatewayParams =
       GatewayParamsMap.get(config.environment) ??
       (GatewayParamsMap.get(Environment.DEV) as GatewayParams);
@@ -94,26 +100,26 @@ export class Container {
 type ClientConfig = Pick<ContainerConfig, "centrifugeWebSocket" | "wallets" | "apiKeys">;
 
 export class ProdContainer extends Container {
-  constructor(config: ClientConfig) {
-    super({ ...config, environment: Environment.PROD });
+  constructor(config: ClientConfig, isDebug = false) {
+    super({ ...config, environment: Environment.PROD }, isDebug);
   }
 }
 
 export class DemoContainer extends Container {
-  constructor(config: ClientConfig) {
-    super({ ...config, environment: Environment.DEMO });
+  constructor(config: ClientConfig, isDebug = false) {
+    super({ ...config, environment: Environment.DEMO }, isDebug);
   }
 }
 
 export class DevContainer extends Container {
-  constructor(config: ClientConfig) {
-    super({ ...config, environment: Environment.DEV });
+  constructor(config: ClientConfig, isDebug = false) {
+    super({ ...config, environment: Environment.DEV }, isDebug);
   }
 }
 
 export class LocalContainer extends Container {
-  constructor(config: ClientConfig) {
-    super({ ...config, environment: Environment.LOCAL });
+  constructor(config: ClientConfig, isDebug = false) {
+    super({ ...config, environment: Environment.LOCAL }, isDebug);
   }
 }
 
