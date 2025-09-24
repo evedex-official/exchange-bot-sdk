@@ -42,6 +42,7 @@ import { WebSocket } from "ws";
 #### DEMO TRADING ENVIRONMENT
 
 ```ts
+const isDebugMode = true; // optional parameter false by default, true for debugging mode 
 const container = new evedexSdk.DemoContainer({
   centrifugeWebSocket: WebSocket,
   wallets: {
@@ -50,7 +51,7 @@ const container = new evedexSdk.DemoContainer({
     },
   },
   apiKeys: {},
-});
+}, isDebugMode);
 ```
 
 #### PRODUCTION ENVIRONMENT
