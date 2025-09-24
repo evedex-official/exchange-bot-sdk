@@ -104,6 +104,10 @@ const demoContainer = new evedexSdk.DemoContainer({
     },
   },
 });
+
+const apiKeyAccount = await container.apiKeyAccount('mainApiKey');
+const accountInfo = await apiKeyAccount.fetchMe();
+console.log('👤 Account info:', accountInfo);
 ```
 
 </details>
