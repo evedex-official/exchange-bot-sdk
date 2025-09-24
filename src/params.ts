@@ -9,7 +9,6 @@ export interface GatewayParams {
 export enum Environment {
   LOCAL = "local",
   DEV = "dev",
-  BETA = "beta",
   DEMO = "demo",
   PROD = "prod",
 }
