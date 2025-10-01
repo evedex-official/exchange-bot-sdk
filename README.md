@@ -140,6 +140,52 @@ const container = new evedexSdk.DemoContainer({
 
 </details>
 
+#### Wallet account using one-click-trading wallet and api key
+Wallet account can be instantiated using one-click-trading wallet private key and API key account
+
+<details>
+<summary>Init example</summary>
+
+```ts
+import * as evedexSdk from "@evedex/exchange-bot-sdk";
+
+const container = new evedexSdk.DemoContainer({
+  centrifugeWebSocket: WebSocket,
+  wallets: {
+    oneClickTradingAccount: {
+      privateKey: "0x...",
+    },
+  },
+	apiKeys: {
+    mainApiKey: {
+      apiKey: "cUxD***uOUQ=",
+    },
+  },
+});
+// Create api key account
+const apiKeyAccount = await container.apiKeyAccount('mainApiKey');
+// Receive account info
+const accountInfo = await apiKeyAccount.fetchMe();
+// Initialize one-click-trading wallet account
+const walletAccount = new evedexSdk.WalletAccount({
+  gateway: apiKey.gateway,
+  wallet: container.wallet('oneClickTradingAccount'),
+  exchangeAccount: accountInfo,
+});
+
+await walletAccount.createLimitOrderV2({
+  instrument: 'BTCUSD:DEV',
+  quantity: 0.001,
+  side: evedexSdk.Side.Buy,
+  limitPrice: 107625,
+  leverage: 1,
+  postOnly: false,
+});
+```
+
+</details>
+
+
 #### Balance
 
 Balance instance is designed for calculate available user balance and handle exchange events.
@@ -187,6 +233,7 @@ const container = new evedexSdk.DemoContainer({
       privateKey: "0x...",
     },
   },
+	
 });
 
 const account = await container.account("baseAccount");
@@ -305,7 +352,7 @@ const sampleOrders = async (account: evedexSdk.WalletAccount) => {
     limitPrice: md.bids[0].price - 500,
     leverage: 20,
   };
-  const order = await account.createLimitOrder(limitOrder);
+  const order = await account.createLimitOrderV2(limitOrder);
   console.info(`Order created: ${order.id}`);
   console.log("Cancelling limit order...");
 
@@ -1110,10 +1157,10 @@ const withdrawResult = await walletAccount.createWithdraw(withdrawQueryParams);
 
 </details>
 
- - `createClosePositionOrder(order)` — method used to creates a signed close position order and sends it to the exchange gateway
+ - `createClosePositionOrderV2(order)` — method used to creates a signed close position order and sends it to the exchange gateway
 
 <details>
-<summary>createWithdraw method usage example</summary>
+<summary>createClosePositionOrderV2 method usage example</summary>
 
 ```typescript
 import { WebSocket } from "ws";
@@ -1141,10 +1188,10 @@ const positionCloseOrderPayload: PositionCloseOrderPayload = {
   leverage: 10,
   quantity: 0.1,
 };
-const closePositionResult = await walletAccount.createClosePositionOrder(positionCloseOrderPayload);
+const closePositionResult = await walletAccount.createClosePositionOrderV2(positionCloseOrderPayload);
 ```
 
-<summary>createClosePositionOrder result example</summary>
+<summary>createClosePositionOrderV2 result example</summary>
 
 ```json
 {
@@ -1225,10 +1272,10 @@ const updatePositionResult = await walletAccount.updatePosition(positionCloseOrd
 
 </details>
 
-- `createLimitOrder(order)` — method used to create a signed limit order and sends it to the exchange gateway.
+- `createLimitOrderV2(order)` — method used to create a signed limit order and sends it to the exchange gateway.
 
 <details>
-<summary>createLimitOrder(order) method usage example</summary>
+<summary>createLimitOrderV2(order) method usage example</summary>
 
 ```typescript
 import { WebSocket } from "ws";
@@ -1280,10 +1327,10 @@ const limitOrderPayload: LimitOrderPayload = {
   // Optional flag to use for POST only limit orders
   postOnly: true
 };
-const createLimitOrderResult = await walletAccount.createLimitOrder(limitOrderPayload);
+const createLimitOrderResult = await walletAccount.createLimitOrderV2(limitOrderPayload);
 ```
 
-<summary>createLimitOrder result example</summary>
+<summary>createLimitV2Order result example</summary>
 
 ```json
 {
@@ -1316,10 +1363,10 @@ const createLimitOrderResult = await walletAccount.createLimitOrder(limitOrderPa
 
 </details>
 
-- `batchCreateLimitOrder(orders)` — method used to create a signed limit order and sends it to the exchange gateway.
+- `batchCreateLimitOrderV2(orders)` — method used to create a signed limit order and sends it to the exchange gateway.
 
 <details>
-<summary>batchCreateLimitOrder(orders) method usage example</summary>
+<summary>batchCreateLimitOrderV2(orders) method usage example</summary>
 
 ```typescript
 import { WebSocket } from "ws";
@@ -1366,13 +1413,13 @@ const limitOrderPayloads: LimitOrderPayload[] = [
     limitPrice: 101000,
   },
 ];
-const batchCreateLimitOrderResult = await walletAccount.batchCreateLimitOrder(
+const batchCreateLimitOrderResult = await walletAccount.batchCreateLimitOrderV2(
   instrument,
   limitOrderPayloads,
 );
 ```
 
-<summary>batchCreateLimitOrder result example</summary>
+<summary>batchCreateLimitOrderV2 result example</summary>
 
 ```json
 [
@@ -1527,10 +1574,10 @@ const batchReplaceInstrumentLimitOrderResult = await walletAccount.batchReplaceI
 
 </details>
 
-- `createMarketOrder(order)` — method used to create a signed market order.
+- `createMarketOrderV2(order)` — method used to create a signed market order.
 
 <details>
-<summary>createMarketOrder(order) method usage example</summary>
+<summary>createMarketOrderV2(order) method usage example</summary>
 
 ```typescript
 import { WebSocket } from "ws";
@@ -1581,10 +1628,10 @@ const marketOrderPayload: MarketOrderPayload = {
     },
   ],
 };
-const createMarketOrderResult = await walletAccount.createMarketOrder(marketOrderPayload);
+const createMarketOrderResult = await walletAccount.createMarketOrderV2(marketOrderPayload);
 ```
 
-<summary>createMarketOrder result example</summary>
+<summary>createMarketOrderV2 result example</summary>
 
 ```json
 {
@@ -1617,10 +1664,10 @@ const createMarketOrderResult = await walletAccount.createMarketOrder(marketOrde
 
 </details>
 
- - `createStopLimitOrder(order)` — method used to create a stop-limit order.
+ - `createStopLimitOrderV2(order)` — method used to create a stop-limit order.
 
 <details>
-<summary>createStopLimitOrder(order) method usage example</summary>
+<summary>createStopLimitOrderV2(order) method usage example</summary>
 
 ```typescript
 import { WebSocket } from "ws";
@@ -1671,10 +1718,10 @@ const limitOrderPayload: StopLimitOrderPayload = {
     },
   ],
 };
-const createStopLimitOrderResult = await walletAccount.createStopLimitOrder(limitOrderPayload);
+const createStopLimitOrderResult = await walletAccount.createStopLimitOrderV2(limitOrderPayload);
 ```
 
-<summary>createStopLimitOrder result example</summary>
+<summary>createStopLimitOrderV2 result example</summary>
 
 ```json
 {
