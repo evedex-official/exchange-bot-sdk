@@ -257,6 +257,7 @@ export class Gateway {
         visibility,
         marketState,
         updatedAt,
+        priceIncrement,
       }) => {
         this.updateInstrumentState({
           id,
@@ -278,6 +279,7 @@ export class Gateway {
           visibility,
           marketState,
           updatedAt,
+          priceIncrement,
         });
       },
     );

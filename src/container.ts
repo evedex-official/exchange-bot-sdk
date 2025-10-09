@@ -123,6 +123,12 @@ export class LocalContainer extends Container {
   }
 }
 
+export class DockerContainer extends Container {
+  constructor(config: ClientConfig, isDebug = false) {
+    super({ ...config, environment: Environment.DOCKER }, isDebug);
+  }
+}
+
 export function initContainer(env: Environment, config: ClientConfig): Container {
   switch (env) {
     case Environment.PROD: {
@@ -136,6 +142,9 @@ export function initContainer(env: Environment, config: ClientConfig): Container
     }
     case Environment.LOCAL: {
       return new LocalContainer(config);
+    }
+    case Environment.DOCKER: {
+      return new DockerContainer(config);
     }
     default: {
       throw new Error("Unknown environment type");
