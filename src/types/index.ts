@@ -96,5 +96,7 @@ export type MarketOrderPayload = OrderPayload<MarketOrder>;
 export type StopLimitOrderPayload = OrderPayload<StopLimitOrder>;
 export type RequestError = evedexApi.utils.RequestError;
 
-export type InstrumentState = Omit<evedexApi.utils.InstrumentUpdateEvent, "displayName">;
+export type InstrumentState = Omit<evedexApi.utils.InstrumentUpdateEvent, "displayName"> & {
+  priceIncrement?: number;
+};
 export type InstrumentMarkPrice = Pick<InstrumentState, "markPrice" | "updatedAt" | "name">;
