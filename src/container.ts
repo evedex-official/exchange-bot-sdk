@@ -47,7 +47,7 @@ export class Container {
       ),
   );
 
-  private readonly gatewayParams: GatewayParams;
+  public readonly gatewayParams: GatewayParams;
 
   constructor(
     public config: ContainerConfig,
