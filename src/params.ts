@@ -30,7 +30,7 @@ export const GatewayParamsMap = new Map<Environment, GatewayParams>([
     {
       exchangeURI: "http://exchange-backend:8080",
       authURI: "http://auth-backend:8080",
-      centrifugeURI: "ws://centrifugo",
+      centrifugeURI: "ws://centrifugo/connection/websocket",
       centrifugePrefix: "futures-perp",
       chainId: "16182",
     },
