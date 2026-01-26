@@ -24,6 +24,7 @@ export interface ContainerConfig {
   centrifugeWebSocket?: any;
   wallets: Record<string, WalletConfig>;
   apiKeys: Record<string, ApiKey>;
+  gatewayOverrides?: Partial<GatewayParams>;
 }
 
 export class Container {
@@ -53,9 +54,14 @@ export class Container {
     public config: ContainerConfig,
     readonly isDebug = false,
   ) {
-    this.gatewayParams =
+    const baseParams =
       GatewayParamsMap.get(config.environment) ??
       (GatewayParamsMap.get(Environment.DEV) as GatewayParams);
+
+    this.gatewayParams = {
+      ...baseParams,
+      ...config.gatewayOverrides,
+    };
   }
 
   wallet(walletName: string) {
@@ -97,7 +103,7 @@ export class Container {
   }
 }
 
-type ClientConfig = Pick<ContainerConfig, "centrifugeWebSocket" | "wallets" | "apiKeys">;
+type ClientConfig = Pick<ContainerConfig, "centrifugeWebSocket" | "wallets" | "apiKeys" | "gatewayOverrides">;
 
 export class ProdContainer extends Container {
   constructor(config: ClientConfig, isDebug = false) {
