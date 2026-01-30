@@ -82,7 +82,7 @@ export interface GatewayOptions {
 export class Gateway {
   private readonly httpClient: RestClient;
 
-  private readonly centrifugeClient: CentrifugeClient;
+  public readonly centrifugeClient: CentrifugeClient;
 
   public readonly authGateway: evedexApi.AuthRestGateway;
 
@@ -121,9 +121,12 @@ export class Gateway {
         : new CentrifugeClient(
             new Centrifuge(
               options.centrifuge.uri,
-              options.centrifuge.websocket ? { websocket: options.centrifuge.websocket } : {},
+              options.centrifuge.websocket
+                ? { websocket: options.centrifuge.websocket, debug: isDebug }
+                : {},
             ),
             options.centrifuge.prefix,
+            this.getToken.bind(this),
           );
     this.centrifugeClient.onRecover((channel) => this.onRecover(channel));
     this.centrifugeClient.connect();
@@ -143,6 +146,12 @@ export class Gateway {
 
   get session() {
     return this.httpClient.getSession();
+  }
+
+  getToken() {
+    const session = this.httpClient.getSession() as { accessToken?: string } | undefined;
+
+    return session?.accessToken ?? "";
   }
 
   closeWsConnection() {
