@@ -1139,6 +1139,7 @@ const withdrawQueryParams: TradingBalanceWithdraw = {
 const withdrawResult = await walletAccount.createWithdraw(withdrawQueryParams);
 ```
 
+
 <summary>createWithdraw result example</summary>
 
 ```json
