@@ -6,12 +6,23 @@ export class CentrifugeSubscription implements evedexApi.utils.CentrifugeSubscri
     protected readonly channel: Subscription,
     protected readonly client: CentrifugeClient,
   ) {
+    const reasons = ["jwt malformed", "token expired", "unauthorized"];
+
     channel.on("subscribed", (ctx) => {
       if (ctx.wasRecovering && !ctx.recoverable) {
         this.onRecover(null);
         this.client.onRecover(this);
       }
     });
+
+    channel.on("unsubscribed", (ctx) => {
+      if (!reasons.includes(ctx.reason)) return;
+
+      setTimeout(() => {
+        this.subscribe();
+      }, 5000);
+    });
+
     channel.on("publication", (ctx) => this.onPublication(ctx));
   }
 
@@ -35,6 +46,7 @@ export class CentrifugeClient implements evedexApi.utils.CentrifugeClient {
   constructor(
     protected readonly centrifuge: Centrifuge,
     protected readonly prefix: string,
+    private readonly getToken: () => string,
   ) {
     centrifuge.on("connected", () => this.onConnected(null));
     centrifuge.on("disconnected", () => this.onDisconnected(null));
@@ -54,12 +66,29 @@ export class CentrifugeClient implements evedexApi.utils.CentrifugeClient {
     return this.centrifuge.disconnect();
   }
 
-  assignChannel(name: string, options?: evedexApi.utils.AssignChannelOptions) {
+  assignChannel(name: string, options: Partial<evedexApi.utils.SubscriptionOptions> = {}) {
     let channel = this.channels.get(name);
     if (channel) return channel;
 
     channel = new CentrifugeSubscription(
-      this.centrifuge.newSubscription(`${this.prefix}:${name}`, options),
+      this.centrifuge.newSubscription(`${this.prefix}:${name}`, {
+        ...options,
+        getData: async () => {
+          try {
+            const accessToken = this.getToken();
+
+            if (!accessToken) return undefined;
+
+            return {
+              accessToken,
+            };
+          } catch (error) {
+            console.error(error);
+
+            return undefined;
+          }
+        },
+      }),
       this,
     );
     this.channels.set(name, channel);
