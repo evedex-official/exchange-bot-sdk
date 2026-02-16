@@ -75,21 +75,24 @@ export class RestClient implements evedexApi.utils.HttpClient {
       };
     } catch (e) {
       if (axios.isAxiosError(e) && e.response) {
-        throw new evedexApi.utils.RequestError(e.response.data?.error ?? e.response.statusText, {
-          status: e.response.status,
-          statusText: e.response.statusText,
-          data: {
-            request: {
-              url: request.url,
-              method: request.method,
-              headers: JSON.parse(JSON.stringify(request.headers)),
-            },
-            response: {
-              headers: JSON.parse(JSON.stringify(e.response.headers)),
-              data: e.response.data,
+        throw new evedexApi.utils.RequestError(
+          e.response.data?.error ? JSON.stringify(e.response.data?.error) : e.response.statusText,
+          {
+            status: e.response.status,
+            statusText: e.response.statusText,
+            data: {
+              request: {
+                url: request.url,
+                method: request.method,
+                headers: JSON.parse(JSON.stringify(request.headers)),
+              },
+              response: {
+                headers: JSON.parse(JSON.stringify(e.response.headers)),
+                data: e.response.data,
+              },
             },
           },
-        });
+        );
       }
 
       throw e;
