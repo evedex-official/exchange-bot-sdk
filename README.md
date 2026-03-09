@@ -287,7 +287,10 @@ const sampleMarketData = async () => {
     console.log(o);
     gateway.unListenOrderBookBest("BTCUSDT:DEMO");
   });
-  gateway.listenOrderBookBest("BTCUSDT:DEMO");
+  
+  const wsTimeout = 2000;
+  // wsTimeout ms optional arg - by default 1000 ms
+  gateway.listenOrderBookBest("BTCUSDT:DEMO", wsTimeout);
 
   //let's fetch orderbook directly
   console.log(await gateway.fetchMarketDepth({ instrument: "BTCUSDT:DEMO", maxLevel: 10 }));

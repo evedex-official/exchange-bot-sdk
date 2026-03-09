@@ -59,6 +59,7 @@ import {
 } from "./types";
 import Big from "big.js";
 import { generateOrderIdV2 } from "./utils";
+import { setTimeout as asyncTimeout } from "node:timers/promises";
 
 export interface GatewayOptions {
   httpClient?:
@@ -346,7 +347,7 @@ export class Gateway {
   public readonly onOrderBookBestUpdate =
     evedexApi.utils.signal<evedexApi.OrderBookBestUpdateEvent>();
 
-  async listenOrderBookBest(instrument: string) {
+  async listenOrderBookBest(instrument: string, wsTimeout = 1000) {
     if (this.lastOrderBookBestTime.has(instrument)) {
       return;
     }
@@ -359,6 +360,9 @@ export class Gateway {
       maxLevel: 1,
       roundPrice: OrderBookRoundPrices.OneTenth,
     });
+
+    await asyncTimeout(wsTimeout);
+
     this.updateOrderBookBest({
       instrument,
       t: orderBook.t,
