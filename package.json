@@ -1,6 +1,6 @@
 {
   "name": "@evedex/exchange-bot-sdk",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "",
   "main": "dist/cjs/index.js",
   "module": "dist/mjs/index.js",
