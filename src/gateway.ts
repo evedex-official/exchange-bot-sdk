@@ -83,19 +83,19 @@ export interface GatewayOptions {
 export class Gateway {
   private readonly httpClient: RestClient;
 
-  public readonly centrifugeClient: CentrifugeClient;
+  public centrifugeClient: CentrifugeClient | undefined;
+
+  public wsGateway: evedexApi.ExchangeWsGateway | undefined;
 
   public readonly authGateway: evedexApi.AuthRestGateway;
 
   public readonly exchangeGateway: evedexApi.ExchangeRestGateway;
 
-  public readonly wsGateway: evedexApi.ExchangeWsGateway;
-
   public readonly onRecover = evedexApi.utils.signal<CentrifugeSubscription>();
 
   constructor(
     public readonly options: Readonly<GatewayOptions>,
-    isDebug = false,
+    public readonly isDebug = false,
   ) {
     this.httpClient =
       options.httpClient instanceof RestClient
@@ -115,34 +115,6 @@ export class Gateway {
       exchangeURI: options.exchangeURI,
       httpClient: this.httpClient,
     });
-
-    this.centrifugeClient =
-      options.centrifuge instanceof CentrifugeClient
-        ? options.centrifuge
-        : new CentrifugeClient(
-            new Centrifuge(
-              options.centrifuge.uri,
-              options.centrifuge.websocket
-                ? { websocket: options.centrifuge.websocket, debug: isDebug }
-                : {},
-            ),
-            options.centrifuge.prefix,
-            this.getToken.bind(this),
-          );
-    this.centrifugeClient.onRecover((channel) => this.onRecover(channel));
-    this.centrifugeClient.connect();
-    this.wsGateway = new evedexApi.ExchangeWsGateway({
-      wsClient: this.centrifugeClient,
-    });
-
-    this.wsGateway.onMatcherUpdate((matcherState) => this.updateMatcherState(matcherState));
-    this.wsGateway.onOrderBookBestUpdate((orderBook) => this.updateOrderBookBest(orderBook));
-    this.wsGateway.onOrderBookUpdate((orderBook) => this.updateOrderBook(orderBook));
-    this.wsGateway.onRecentTrade((trade) => this.updateTrade(trade));
-    this.wsGateway.onFundingRateUpdate((fundingRate) => this.updateFundingRateState(fundingRate));
-    this.wsGateway.onInstrumentUpdate(({ displayName, ...instrumentState }) =>
-      this.updateInstrumentState(instrumentState),
-    );
   }
 
   get session() {
@@ -155,8 +127,44 @@ export class Gateway {
     return session?.accessToken ?? "";
   }
 
+  wsConnect() {
+    const centrifugeClient =
+      this.options.centrifuge instanceof CentrifugeClient
+        ? this.options.centrifuge
+        : new CentrifugeClient(
+            new Centrifuge(
+              this.options.centrifuge.uri,
+              this.options.centrifuge.websocket
+                ? { websocket: this.options.centrifuge.websocket, debug: this.isDebug }
+                : {},
+            ),
+            this.options.centrifuge.prefix,
+            this.getToken.bind(this),
+          );
+    centrifugeClient.onRecover((channel) => this.onRecover(channel));
+    centrifugeClient.connect();
+    const wsGateway = new evedexApi.ExchangeWsGateway({
+      wsClient: centrifugeClient,
+    });
+
+    wsGateway.onMatcherUpdate((matcherState) => this.updateMatcherState(matcherState));
+    wsGateway.onOrderBookBestUpdate((orderBook) => this.updateOrderBookBest(orderBook));
+    wsGateway.onOrderBookUpdate((orderBook) => this.updateOrderBook(orderBook));
+    wsGateway.onRecentTrade((trade) => this.updateTrade(trade));
+    wsGateway.onFundingRateUpdate((fundingRate) => this.updateFundingRateState(fundingRate));
+    wsGateway.onInstrumentUpdate(({ displayName: _displayName, ...instrumentState }) =>
+      this.updateInstrumentState(instrumentState),
+    );
+
+    this.centrifugeClient = centrifugeClient;
+    this.wsGateway = wsGateway;
+  }
+
   closeWsConnection() {
-    return this.centrifugeClient.disconnect();
+    if (!this.centrifugeClient) return;
+    this.centrifugeClient.disconnect();
+    this.centrifugeClient = undefined;
+    this.wsGateway = undefined;
   }
 
   protected updateInstrumentState(instrumentState: InstrumentState) {
@@ -240,6 +248,7 @@ export class Gateway {
   public readonly onInstrumentStateUpdate = evedexApi.utils.signal<InstrumentState>();
 
   async listenInstrumentState() {
+    if (!this.wsGateway) throw new Error("No WS connection, use wsConnect method");
     if (this.lastInstrumentStateUpdateTime.size > 0) return;
 
     this.wsGateway.listenInstruments();
@@ -296,6 +305,7 @@ export class Gateway {
   }
 
   unListenlistenInstrumentState() {
+    if (!this.wsGateway) throw new Error("No WS connection, use wsConnect method");
     this.lastInstrumentStateUpdateTime.clear();
 
     this.wsGateway.unListenInstruments();
@@ -306,6 +316,7 @@ export class Gateway {
   public readonly onFundingRateUpdate = evedexApi.utils.signal<evedexApi.FundingRateEvent>();
 
   async listenFundingRateState() {
+    if (!this.wsGateway) throw new Error("No WS connection, use wsConnect method");
     if (this.lastInstrumentFundingRateTime.size > 0) return;
 
     this.wsGateway.listenFundingRate();
@@ -322,6 +333,7 @@ export class Gateway {
   }
 
   unListenFundingRateState() {
+    if (!this.wsGateway) throw new Error("No WS connection, use wsConnect method");
     this.lastInstrumentFundingRateTime.clear();
 
     this.wsGateway.unListenFundingRate();
@@ -330,6 +342,7 @@ export class Gateway {
   public readonly onMatcherState = evedexApi.utils.signal<evedexApi.MatcherUpdateEvent>();
 
   async listenMatcherState() {
+    if (!this.wsGateway) throw new Error("No WS connection, use wsConnect method");
     if (this.lastMatcherStateTime !== undefined) return;
 
     this.lastMatcherStateTime = new Date();
@@ -340,6 +353,7 @@ export class Gateway {
   }
 
   unListenMatcherState() {
+    if (!this.wsGateway) throw new Error("No WS connection, use wsConnect method");
     this.wsGateway.unListenMatcher();
     this.lastMatcherStateTime = undefined;
   }
@@ -348,6 +362,7 @@ export class Gateway {
     evedexApi.utils.signal<evedexApi.OrderBookBestUpdateEvent>();
 
   async listenOrderBookBest(instrument: string, wsTimeout = 1000) {
+    if (!this.wsGateway) throw new Error("No WS connection, use wsConnect method");
     if (this.lastOrderBookBestTime.has(instrument)) {
       return;
     }
@@ -372,6 +387,7 @@ export class Gateway {
   }
 
   unListenOrderBookBest(instrument: string) {
+    if (!this.wsGateway) throw new Error("No WS connection, use wsConnect method");
     this.wsGateway.unListenOrderBookBest({ instrument });
     this.lastOrderBookBestTime.delete(instrument);
   }
@@ -379,6 +395,7 @@ export class Gateway {
   public readonly onOrderBookUpdate = evedexApi.utils.signal<evedexApi.OrderBookUpdateEvent>();
 
   async listenOrderBook(instrument: string) {
+    if (!this.wsGateway) throw new Error("No WS connection, use wsConnect method");
     if (this.lastOrderBookTime.has(instrument)) {
       return;
     }
@@ -398,6 +415,8 @@ export class Gateway {
   }
 
   unListenOrderBook(instrument: string) {
+    if (!this.wsGateway) throw new Error("No WS connection, use wsConnect method");
+
     this.wsGateway.unListenOrderBook({ instrument });
     this.lastOrderBookTime.delete(instrument);
   }
@@ -405,6 +424,7 @@ export class Gateway {
   public readonly onTrade = evedexApi.utils.signal<evedexApi.TradeEvent>();
 
   async listenTrades(instrument: string) {
+    if (!this.wsGateway) throw new Error("No WS connection, use wsConnect method");
     if (this.lastTradeDate.has(instrument)) {
       return;
     }
@@ -414,6 +434,8 @@ export class Gateway {
   }
 
   unListenTrades(instrument: string) {
+    if (!this.wsGateway) throw new Error("No WS connection, use wsConnect method");
+
     this.wsGateway.unListenRecentTrades({ instrument });
     this.lastTradeDate.delete(instrument);
   }
@@ -1267,6 +1289,7 @@ export class Balance {
   public readonly onMarkPriceUpdate = evedexApi.utils.signal<InstrumentMarkPrice>();
 
   async listen() {
+    if (!this.gateway.wsGateway) throw new Error("No WS connection, use gateway.wsConnect method");
     if (this._listening) return this;
 
     this._listening = true;
@@ -1326,6 +1349,7 @@ export class Balance {
   }
 
   async unListen() {
+    if (!this.gateway.wsGateway) throw new Error("No WS connection, use gateway.wsConnect method");
     if (!this._listening) return this;
 
     const unListenQuery = { userExchangeId: this.account.exchangeAccount.exchangeId };

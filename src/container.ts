@@ -103,7 +103,10 @@ export class Container {
   }
 }
 
-type ClientConfig = Pick<ContainerConfig, "centrifugeWebSocket" | "wallets" | "apiKeys" | "gatewayOverrides">;
+type ClientConfig = Pick<
+  ContainerConfig,
+  "centrifugeWebSocket" | "wallets" | "apiKeys" | "gatewayOverrides"
+>;
 
 export class ProdContainer extends Container {
   constructor(config: ClientConfig, isDebug = false) {
